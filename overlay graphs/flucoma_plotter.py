@@ -17,7 +17,7 @@ save_svg = False
 save_png = True
 show = False
 output_dim_px = [1920,540]
-dpi = 150
+dpi = 300
 
 # WAVEFORM
 waveform_color = (0,0,0) # black
