@@ -6,23 +6,15 @@ import scipy
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import csv
+import json
+import argparse
 
 # FEATURES
-features = []
+# features = []
 
 #####################################################################################################
-audio_path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-sc/release-packaging/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav"
-x_samples = 1000
-save_svg = False
-save_png = True
-show = False
-output_dim_px = [1920,540]
-dpi = 300
 
 # WAVEFORM
-waveform_color = (0,0,0) # black
-waveform_alpha = 1
-waveform_plot = 0
 
 # loudness
 # features.append({
@@ -52,19 +44,19 @@ waveform_plot = 0
 # })
 
 # novelty
-features.append({
-    "color":(1,0,0),
-    "alpha":1,
-    "label":None,
-    "axis":1,
-    'plot':0,
-    "data":None,
-    'plot_strategy':'v_lines',
-    'rescale_kind':'none',
-    "path":"/Users/macprocomputer/Desktop/_flucoma/learn/slicing/scratchy_novelty.csv",
-    'fill_between':True
-    # "path":"/Users/macprocomputer/Desktop/_flucoma/drums_db.csv"
-})
+# features.append({
+#     "color":(1,0,0),
+#     "alpha":1,
+#     "label":None,
+#     "axis":1,
+#     'plot':0,
+#     "data":None,
+#     'plot_strategy':'v_lines',
+#     'rescale_kind':'none',
+#     "path":"/Users/macprocomputer/Desktop/_flucoma/learn/slicing/scratchy_novelty.csv",
+#     'fill_between':True
+#     # "path":"/Users/macprocomputer/Desktop/_flucoma/drums_db.csv"
+# })
 
 # features.append({
 #     "color":(1,1,0.1),
@@ -80,10 +72,6 @@ features.append({
 # })
 
 #####################################################################################################
-
-samplerate, raw_audio = wavfile.read(audio_path)
-raw_audio = np.array(raw_audio)
-
 def max_resample(arr,target_len,constant_vals = 0):
     n_pad_right = target_len - (len(arr) % target_len)
 
@@ -92,103 +80,135 @@ def max_resample(arr,target_len,constant_vals = 0):
     chunks = np.split(arr, target_len)
     return np.array([max(chunk) for chunk in chunks]).reshape(-1,1)
 
-downsampled = max_resample(raw_audio,x_samples)
-downsampled = np.array(MinMaxScaler().fit_transform(downsampled)).flatten()
-
-def format_func(value,tick_number):
-    # print(value)
-    # print(samplerate)
-    # print(x_samples)
-    # print('')
-    tick_val = np.round((value  / x_samples) * (len(raw_audio) / samplerate),1)
-    return tick_val
-
-def waveform_on_axis(wf,ax):
-    ax.set_xlabel('time (sec)')
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
-    ax.set_ylabel('amplitude', color=waveform_color)
-    fill_between_x = np.arange(0,x_samples,1)
-    ax.fill_between(fill_between_x,wf,wf * -1,color=waveform_color,alpha=waveform_alpha,linewidth=0)
-    ax.tick_params(axis='y', labelcolor=waveform_color)
-
-def feature_on_axis(feature,ax):
-
-    print(feature)
-    # print(feature['path'])
-    if feature['path'] != None:
-        feature['data'] = genfromtxt(feature['path'],delimiter=',')
-    # ax = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    if feature['rescale_kind'] == 'linear':
-        feature['data'] = signal.resample(feature['data'],x_samples)
-
-    if feature['rescale_kind'] == 'max':
-        feature['data'] = max_resample(feature['data'],x_samples,-1)
-    
-    if feature['label'] != None:
-        ax.set_ylabel(feature['label'], color=feature['color'])  # we already handled the x-label with ax1
-        ax.tick_params(axis='y', labelcolor=feature['color'])
-    
-    # feature['data'] = feature['data'].flatten()
-    # print(feature['data'])
-    # print(feature['data'].shape)
-    # print(feature['data'].ndim)
-
-    if feature['plot_strategy'] == 'fill_between':
-        fill_between_x = np.arange(0,x_samples,1)
-        ax.fill_between(fill_between_x,feature['data'],[np.min(feature['data']) for i in range(x_samples)],color=feature['color'],linewidth=0,alpha=feature['alpha'])
-    elif feature['plot_strategy'] == 'v_lines':
-        for x in feature['data']:
-            print(x)
-            plotx = (x / len(raw_audio)) * x_samples
-            print(plotx)
-            print("")
-            ax.axvline(x=plotx,color=feature['color'],linewidth=1,alpha=feature['alpha'])
+def resample(feature,x_samples):
+    if feature['resample'] == 'max':
+        return max_resample(feature['data'],x_samples,constant_vals=np.min(feature['data']))
+    elif feature['resample'] == 'linear':
+        return signal.resample(feature['data'],x_samples)
     else:
-        ax.plot(feature['data'],color=feature['color'],alpha=feature['alpha'])
+        return feature['data']
 
-# if overlay:
-#     fig, ax1 = plt.subplots()
+def process_fill(feature,ax,x_samples):
+    feature = check_feature_for_data(feature)
 
-#     # WAVEFORM
-#     waveform_on_axis(downsampled,ax1)
+    if 'resample' in feature.keys():
+        feature['data'] = resample(feature,x_samples)
 
-#     # FEATURE
-#     feature_on_axis(features[0],ax1.twinx())
+    fill_between_x = np.arange(0,x_samples,1)
+    y1 = feature['data'].flatten()
+    y2 = np.array([np.min(feature['data']) for i in range(x_samples)])
 
-#     # PLOT
+    # print(y1)
+    ax[feature['plot']].fill_between(fill_between_x,y1,y2,color=feature['color'],linewidth=0,alpha=feature['alpha'])
+    if feature['label'] != None:
+        ax[feature['plot']].set_ylabel(feature['label'], color=feature['color'])
+        ax[feature['plot']].tick_params(axis='y', labelcolor=feature['color'])
 
-# else:
+# def feature_on_axis(feature,ax,x_samples):
 
-n_plots = 0
+#     print(feature)
+#     # print(feature['path'])
+#     if feature['path'] != None:
+#         feature['data'] = genfromtxt(feature['path'],delimiter=',')
+#     # ax = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
-for feature in features:
-    n_plots = max(n_plots,feature['plot'])
+#     if feature['rescale'] == 'linear':
+#         feature['data'] = signal.resample(feature['data'],x_samples)
 
-n_plots = max(n_plots,waveform_plot) + 1
-
-# print('nplots',n_plots)
-
-fig, axes = plt.subplots(n_plots,1,sharex=True)
-
-if not isinstance(axes,np.ndarray):
-    axes = np.array([axes])
-
-# print(axes)
-
-waveform_on_axis(downsampled,axes[waveform_plot])
-for feature in features:
-    # print(feature)
-    feature_on_axis(feature,axes[feature['plot']])
-
-fig.tight_layout()  # otherwise the right y-label is slightly clipped
-fig.set_size_inches(output_dim_px[0] / dpi, (output_dim_px[1] / dpi) * n_plots)
+#     if feature['rescale_kind'] == 'max':
+#         feature['data'] = max_resample(feature['data'],x_samples,-1)
     
-if save_svg:
-    plt.savefig("test.svg",dpi=dpi)
+#     if feature['label'] != None:
+#         ax.set_ylabel(feature['label'], color=feature['color'])  # we already handled the x-label with ax1
+#         ax.tick_params(axis='y', labelcolor=feature['color'])
 
-if save_png:
-    plt.savefig("test.png",dpi=dpi)
+#     if feature['plot_strategy'] == 'fill_between':
+#         fill_between_x = np.arange(0,x_samples,1)
+#         ax.fill_between(fill_between_x,feature['data'],[np.min(feature['data']) for i in range(x_samples)],color=feature['color'],linewidth=0,alpha=feature['alpha'])
+#     else:
+#         ax.plot(feature['data'],color=feature['color'],alpha=feature['alpha'])    
 
-if show:
-    plt.show()
+def process_waveform(feature,axes,x_samples):
+    feature['path']
+    samplerate, raw_audio = wavfile.read(feature['path'])
+    raw_audio = np.array(raw_audio)
+
+    downsampled = max_resample(raw_audio,x_samples)
+    downsampled = np.array(MinMaxScaler().fit_transform(downsampled)).flatten()
+    # waveform_on_axis(downsampled,axes[feature['plot']])
+    axes[feature['plot']].set_xlabel('time (sec)')
+    def format_func(value,tick_number):
+        tick_val = np.round((value  / x_samples) * (len(raw_audio) / samplerate),1)
+        return tick_val 
+    axes[feature['plot']].xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+    axes[feature['plot']].set_ylabel('amplitude', color=feature['color'])
+    fill_between_x = np.arange(0,x_samples,1)
+    axes[feature['plot']].fill_between(fill_between_x,downsampled,downsampled * -1,color=feature['color'],alpha=feature['alpha'],linewidth=0)
+    axes[feature['plot']].tick_params(axis='y', labelcolor=feature['color'])
+
+def check_feature_for_data(feature):
+    if 'data' not in feature.keys():
+        feature['data'] = genfromtxt(feature['path'],delimiter=',')
+    return feature
+
+def process_vlines(feature,axes,x_samples):
+    feature = check_feature_for_data(feature)
+    
+    _, raw_audio = wavfile.read(feature['source_audio'])
+    for x in feature['data']:
+        # print(x)
+        plotx = (x / len(raw_audio)) * x_samples
+        # print(plotx)
+        # print("")
+        axes[feature['plot']].vlines(x=plotx,ymin=feature['ymin'],ymax=feature['ymax'],color=feature['color'],linewidth=1,alpha=feature['alpha'])
+
+def process_hlines(feature,axes,x_samples):
+    for y in feature['data']:
+        axes[feature['plot']].hlines(y=y,xmin=0,xmax=x_samples,color=feature['color'],linewidth=1,alpha=feature['alpha'])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input','-i',type=str,dest='input')
+    args = parser.parse_args()
+
+    with open(args.input) as jsonfile:
+        dict = json.load(jsonfile)
+
+        # how many plots do we have to make
+        n_plots = 0
+        for feature in dict['features']:
+            n_plots = max(n_plots,feature['plot'])
+
+        n_plots += 1
+
+        fig, axes = plt.subplots(n_plots,1,sharex=True)
+
+        # for array to simplify later
+        if not isinstance(axes,np.ndarray):
+            axes = np.array([axes])
+
+        # THE ACTUAL PLOTTING
+        types = {
+            "waveform":process_waveform,
+            "vlines":process_vlines,
+            "hlines":process_hlines,
+            "fill":process_fill,
+        }
+
+        for feature in dict['features']:
+            types[feature['type']](feature,axes,dict['x_samples'])
+
+        # FORMATTING
+        fig.tight_layout()
+        fig.set_size_inches(dict['output_dim_px'][0] / dict['dpi'], (dict['output_dim_px'][1] / dict['dpi']))
+        
+        # EXPORTING
+        if dict['save_svg']:
+            plt.savefig("test.svg",dpi=dict['dpi'])
+
+        if dict['save_png']:
+            plt.savefig("test.png",dpi=dict['dpi'])
+
+        if dict['show']:
+            plt.show()

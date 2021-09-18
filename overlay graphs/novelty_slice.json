@@ -1,0 +1,31 @@
+{
+    "x_samples":1000,
+    "save_svg":false,
+    "save_png":false,
+    "show":true,
+    "output_dim_px":[1920,1080],
+    "dpi":300,
+    "features":[
+        {
+            "type":"waveform",
+            "path":"/Users/macprocomputer/Desktop/_flucoma/code/flucoma-sc/release-packaging/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav",
+            "color":"#000000",
+            "alpha":0.5,
+            "label":"Amplitude",
+            "plot":0,
+            "axis":0
+        },
+        {
+            "type":"vlines",
+            "path":"/Users/macprocomputer/Desktop/_flucoma/learn/slicing/scratchy_novelty.csv",
+            "source_audio":"/Users/macprocomputer/Desktop/_flucoma/code/flucoma-sc/release-packaging/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav",
+            "color":"#ff0000",
+            "alpha":0.8,
+            "label":null,
+            "plot":0,
+            "axis":0,
+            "ymin":-1,
+            "ymax":1
+        }
+    ]
+}

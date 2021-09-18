@@ -11,15 +11,10 @@ s.options.outDevice_("External Headphones");
 s.options.inDevice_("MacBook Pro Microphone");
 s.options.sampleRate_(44100);
 s.waitForBoot{
+	// var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Nicol-LoopE-M.wav";
+	var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav";
 	Routine{
-		~drums = Buffer.read(s,"/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Nicol-LoopE-M.wav");
-		~slicePoints = Buffer(s);
-		~slicePoints_ds = FluidDataSet(s);
-
-		s.sync;
-
-		FluidBufOnsetSlice.process(s,~drums,indices:~slicePoints,threshold:0.05,action:{
-			// defer{slicePoints.plot};
+		var process_slicePoints = {
 			~slicePoints.loadToFloatArray(action:{
 				arg slicePoints_fa;
 				Routine{
@@ -55,6 +50,20 @@ s.waitForBoot{
 					};
 				}.play;
 			});
+		};
+		~drums = Buffer.read(s,path);
+		~slicePoints = Buffer(s);
+		~slicePoints_ds = FluidDataSet(s);
+
+		s.sync;
+
+/*		FluidBufOnsetSlice.process(s,~drums,indices:~slicePoints,threshold:0.3,action:{// drums: 0.5
+			// defer{slicePoints.plot};
+			process_slicePoints.value;
+		});*/
+
+		FluidBufNoveltySlice.process(s,~drums,indices:~slicePoints,feature:0,kernelSize:31,threshold:0.4,minSliceLength:2,action:{
+			process_slicePoints.value;
 		});
 	}.play;
 }
@@ -239,29 +248,38 @@ Routine{
 						Routine{
 							var condition = Condition.new;
 							var nn_chart = Array.newClear(dict.at("data").size);
+							var neighbor_bags = Dictionary.new;
 							dict.at("data").keysValuesDo({
 								arg key, val, i_;
 								nn_chart[i_] = Array.newClear(5);
 								nn_chart[i_][0] = key;
+								neighbor_bags.put(key,Bag.new);
 								"point:\t\t\t\t\t\t%".format(key).postln;
 								~ds.getPoint(key,~x_buf,{
 									~raw.tree.kNearest(~x_buf,{
 										arg nearest_list;
 										"raw data nearest neighbor:\t%".format(nearest_list[1]).postln;
 										nn_chart[i_][1] = nearest_list[1];
-
+										neighbor_bags.at(key).add(nearest_list[1]);
 										~get_nearest.(key,~norm,{
 											arg near0;
 											"% nearest neighbor:\t\t%".format(~norm.name,near0).postln;
 											nn_chart[i_][2] = near0;
+											neighbor_bags.at(key).add(near0);
 											~get_nearest.(key,~stand,{
 												arg near1;
 												"% nearest neighbor:\t\t%".format(~stand.name,near1).postln;
 												nn_chart[i_][3] = near1;
+												neighbor_bags.at(key).add(near1);
 												~get_nearest.(key,~robust,{
 													arg near2;
 													"% nearest neighbor:\t%".format(~robust.name,near2).postln;
 													nn_chart[i_][4] = near2;
+													neighbor_bags.at(key).add(near2);
+													"contents:\t\t\t\t\t%".format(neighbor_bags.at(key).contents.size).postln;
+													if(neighbor_bags.at(key).contents.size == 4,{
+														"--- ALL NEIGHBORS ARE DIFFERENT FOR %".format(key).postln;
+													});
 													"".postln;
 													condition.unhang;
 												});
