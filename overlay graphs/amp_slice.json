@@ -2,8 +2,8 @@
     "x_samples":1000,
     "show":true,
     "output_dim_px":[2000,1000],
-    "output_path":"amp_gate.png",
     "dpi":150,
+    "output_path":"amp_slice.png",
     "features":[
         {
             "type":"fill",
@@ -21,7 +21,7 @@
             "color":"#666666",
             "alpha":1,
             "label":null,
-            "data":[-20,-40],
+            "data":[-20],
             "plot":0,
             "axis":0
         },
@@ -35,12 +35,15 @@
             "axis":0
         },
         {
-            "type":"fill",
-            "resample":"max",
-            "path":"/Users/macprocomputer/Desktop/_flucoma/code/graphics/overlay graphs/Nicol_AmpGate.csv",
+            "type":"vlines",
+            "path":"/Users/macprocomputer/Desktop/_flucoma/code/graphics/overlay graphs/Nicol_AmpSlice.csv",
+            "source_audio":"/Users/macprocomputer/Desktop/_flucoma/code/flucoma-sc/release-packaging/AudioFiles/Nicol-LoopE-M.wav",
+            "ymin":-1,
+            "ymax":1,
+            "line_width":2,
             "color":"#0096ff",
-            "alpha":0.5,
-            "label":"AmpGate",
+            "alpha":0.6,
+            "label":"AmpSlice",
             "plot":1,
             "axis":0
         }

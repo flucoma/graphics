@@ -9,68 +9,6 @@ import csv
 import json
 import argparse
 
-# FEATURES
-# features = []
-
-#####################################################################################################
-
-# WAVEFORM
-
-# loudness
-# features.append({
-#     "color":(0,0.588,1), # flucoma blue
-#     "alpha":1,
-#     "label":"Loudness (dB)",
-#     "axis":0,
-#     'plot':0,
-#     'rescale_kind':'linear',
-#     'fill_between':True,
-#     "path":"/Users/macprocomputer/Desktop/_flucoma/drums_db.csv",
-#     'data':None
-# })
-
-# threhold
-# features.append({
-#     "color":(0.8,0.8,0.8),
-#     "alpha":1,
-#     "label":None,
-#     "axis":0,
-#     "plot":0,
-#     'rescale_kind':'linear',
-#     "data":np.full((x_samples,),-20),
-#     "path":None,
-#     'fill_between':False
-#     # "path":"/Users/macprocomputer/Desktop/_flucoma/drums_db.csv"
-# })
-
-# novelty
-# features.append({
-#     "color":(1,0,0),
-#     "alpha":1,
-#     "label":None,
-#     "axis":1,
-#     'plot':0,
-#     "data":None,
-#     'plot_strategy':'v_lines',
-#     'rescale_kind':'none',
-#     "path":"/Users/macprocomputer/Desktop/_flucoma/learn/slicing/scratchy_novelty.csv",
-#     'fill_between':True
-#     # "path":"/Users/macprocomputer/Desktop/_flucoma/drums_db.csv"
-# })
-
-# features.append({
-#     "color":(1,1,0.1),
-#     "alpha":0.8,
-#     "label":'Fluid Amp Gate',
-#     "axis":1,
-#     'plot':0,
-#     "data":None,
-#     'rescale_kind':'max',
-#     "path":"/Users/macprocomputer/Desktop/_flucoma/learn/slicing/Nicol_AmpGate.csv",
-#     'fill_between':True
-#     # "path":"/Users/macprocomputer/Desktop/_flucoma/drums_db.csv"
-# })
-
 #####################################################################################################
 def max_resample(arr,target_len,constant_vals = 0):
     n_pad_right = target_len - (len(arr) % target_len)
@@ -104,33 +42,10 @@ def process_fill(feature,ax,x_samples):
         ax[feature['plot']].set_ylabel(feature['label'], color=feature['color'])
         ax[feature['plot']].tick_params(axis='y', labelcolor=feature['color'])
 
-# def feature_on_axis(feature,ax,x_samples):
-
-#     print(feature)
-#     # print(feature['path'])
-#     if feature['path'] != None:
-#         feature['data'] = genfromtxt(feature['path'],delimiter=',')
-#     # ax = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-#     if feature['rescale'] == 'linear':
-#         feature['data'] = signal.resample(feature['data'],x_samples)
-
-#     if feature['rescale_kind'] == 'max':
-#         feature['data'] = max_resample(feature['data'],x_samples,-1)
-    
-#     if feature['label'] != None:
-#         ax.set_ylabel(feature['label'], color=feature['color'])  # we already handled the x-label with ax1
-#         ax.tick_params(axis='y', labelcolor=feature['color'])
-
-#     if feature['plot_strategy'] == 'fill_between':
-#         fill_between_x = np.arange(0,x_samples,1)
-#         ax.fill_between(fill_between_x,feature['data'],[np.min(feature['data']) for i in range(x_samples)],color=feature['color'],linewidth=0,alpha=feature['alpha'])
-#     else:
-#         ax.plot(feature['data'],color=feature['color'],alpha=feature['alpha'])    
-
 def process_waveform(feature,axes,x_samples):
-    feature['path']
+    # feature['path']
     samplerate, raw_audio = wavfile.read(feature['path'])
+    print('raw data',raw_audio)
     raw_audio = np.array(raw_audio)
 
     downsampled = max_resample(raw_audio,x_samples)
@@ -154,13 +69,13 @@ def check_feature_for_data(feature):
 def process_vlines(feature,axes,x_samples):
     feature = check_feature_for_data(feature)
     
-    _, raw_audio = wavfile.read(feature['source_audio'])
+    _, raw_audio = wavfile.read(feature['source_audio'],)
     for x in feature['data']:
         # print(x)
         plotx = (x / len(raw_audio)) * x_samples
         # print(plotx)
         # print("")
-        axes[feature['plot']].vlines(x=plotx,ymin=feature['ymin'],ymax=feature['ymax'],color=feature['color'],linewidth=1,alpha=feature['alpha'])
+        axes[feature['plot']].vlines(x=plotx,ymin=feature['ymin'],ymax=feature['ymax'],color=feature['color'],linewidth=feature['line_width'],alpha=feature['alpha'])
 
 def process_hlines(feature,axes,x_samples):
     for y in feature['data']:
@@ -204,11 +119,8 @@ if __name__ == "__main__":
         fig.set_size_inches(dict['output_dim_px'][0] / dict['dpi'], (dict['output_dim_px'][1] / dict['dpi']))
         
         # EXPORTING
-        if dict['save_svg']:
-            plt.savefig("test.svg",dpi=dict['dpi'])
-
-        if dict['save_png']:
-            plt.savefig("test.png",dpi=dict['dpi'])
+        if 'output_path' in dict.keys():
+            plt.savefig(dict['output_path'],dpi=dict['dpi'])
 
         if dict['show']:
             plt.show()

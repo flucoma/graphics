@@ -9,111 +9,125 @@ s.options.sampleRate_(48000);
 // s.options.outDevice_("MacBook Pro Speakers");
 s.options.outDevice_("External Headphones");
 s.options.inDevice_("MacBook Pro Microphone");
-s.options.sampleRate_(44100);
+// s.options.sampleRate_(44100);
 s.waitForBoot{
-	// var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Nicol-LoopE-M.wav";
-	var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav";
+	//var path = "/Users/macprocomputer/Desktop/_flucoma/learn/scaling/test01.wav";
+	var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Nicol-LoopE-M.wav";
+	// var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav";
 	Routine{
 		var process_slicePoints = {
+			Routine{
+				var start_num_dict = Dictionary.newFrom(["cols",2,"data",Dictionary.new]);
+				var cond = Condition.new;
+				var folder = "/Users/macprocomputer/Desktop/_flucoma/learn/scaling/%_drums".format(Date.localtime.stamp);
+
+				var write = false;
+
+				if(write,{
+					var proj = ReaProj();
+					var track = ReaTrack();
+					var rea_offset = 0;
+					folder.mkdir;
+					~slicePoints.do{
+						arg arr, i;
+						var start = arr[0];
+						var end = arr[1];
+						var num = end - start;
+						var new_buf = Buffer.alloc(s,num);
+						s.sync;
+						FluidBufCompose.process(s,~drums,start,num,destination:new_buf,action:{
+							var slice_path = folder+/+"slice-%.wav".format(i);
+							track.addItem(ReaItem(slice_path,rea_offset,new_buf.duration.postln));
+
+							rea_offset = rea_offset + 1;
+
+							new_buf.write(slice_path,"wav",completionMessage:{
+								new_buf.postln;
+								[start,num].postln;
+								cond.unhang;
+							});
+						});
+						cond.hang;
+					};
+					proj.addTrack(track);
+					proj.write(folder+/+"slices.RPP");
+				});
+
+
+				~slicePoints.do{
+					arg arr, i;
+					var start = arr[0];
+					var end = arr[1];
+					var num = end - start;
+					start_num_dict.at("data").put("slice-%".format(i),[start,num]);
+				};
+
+				~slicePoints_ds.load(start_num_dict,{~slicePoints_ds.dump});
+
+				~slicePoints.do{
+					arg arr, i;
+					var start_samps = arr[0];
+					var end_samps = arr[1];
+					var dur_samps = end_samps - start_samps;
+					var dur_secs = dur_samps / ~drums.sampleRate;
+
+					"playing slice % / %".format(i+1,~slicePoints.size-1).postln;
+					//start_samps.postln;
+					"".postln;
+
+					{
+						var sig = PlayBuf.ar(~drums.numChannels,~drums,BufRateScale.ir(~drums),startPos:start_samps);
+						var env = EnvGen.kr(Env([0,1,1,0],[0.03,dur_secs-0.06,0.03]),doneAction:2);
+						sig * env;
+					}.play;
+
+					(dur_secs + 1).wait;
+				};
+			}.play;
+		};
+
+		var slice_points_to_2d = {
+			arg action;
 			~slicePoints.loadToFloatArray(action:{
-				arg slicePoints_fa;
-				Routine{
-					var start_num_dict = Dictionary.newFrom(["cols",2,"data",Dictionary.new]);
-
-					(slicePoints_fa.size-1).do{
-						arg i;
-						var start = slicePoints_fa[i];
-						var num = slicePoints_fa[i+1] - start;
-						start_num_dict.at("data").put("slice-%".format(i),[start,num]);
-					};
-
-					~slicePoints_ds.load(start_num_dict,{~slicePoints_ds.dump});
-
-					(slicePoints_fa.size-1).do{
-						arg i;
-						var start_samps = slicePoints_fa[i];
-						var end_samps = slicePoints_fa[i+1];
-						var dur_samps = end_samps - start_samps;
-						var dur_secs = dur_samps / ~drums.sampleRate;
-
-						"playing slice % / %".format(i+1,slicePoints_fa.size-1).postln;
-						//start_samps.postln;
-						"".postln;
-
-						{
-							var sig = PlayBuf.ar(~drums.numChannels,~drums,BufRateScale.ir(~drums),startPos:start_samps);
-							var env = EnvGen.kr(Env([0,1,1,0],[0.03,dur_secs-0.06,0.03]),doneAction:2);
-							sig * env;
-						}.play;
-
-						(dur_secs + 1).wait;
-					};
-				}.play;
+				arg sp_fa;
+				var sp_new = List.new;
+				(sp_fa.size-1).do({
+					arg i;
+					sp_new.add([sp_fa[i],sp_fa[i+1]]);
+				});
+				~slicePoints = sp_new;
+				action.value;
 			});
 		};
+
 		~drums = Buffer.read(s,path);
 		~slicePoints = Buffer(s);
 		~slicePoints_ds = FluidDataSet(s);
 
 		s.sync;
 
-/*		FluidBufOnsetSlice.process(s,~drums,indices:~slicePoints,threshold:0.3,action:{// drums: 0.5
-			// defer{slicePoints.plot};
-			process_slicePoints.value;
+		/*		FluidBufOnsetSlice.process(s,~drums,indices:~slicePoints,threshold:0.05,action:{
+		// defer{slicePoints.plot};
+		process_slicePoints.value;
 		});*/
 
-		FluidBufNoveltySlice.process(s,~drums,indices:~slicePoints,feature:0,kernelSize:31,threshold:0.4,minSliceLength:2,action:{
-			process_slicePoints.value;
-		});
-	}.play;
-}
-)
+		// FluidBufAmpSlice.process(s,~drums,indices:~slicePoints,floor:-24,onThreshold:5,offThreshold:10,minSliceLength:~drums.sampleRate * 0.1,action:{
+		// 	slice_points_to_2d.(process_slicePoints);
+		// });
 
-(
-Routine{
-	// var seq = ["slice-27","slice-21","slice-13","slice-23","slice-23"]; // kick
-	// var seq = ["slice-18","slice-8","slice-6","slice-28","slice-28"]; // snare
-	// var seq = ["slice-8","slice-18","slice-9","slice-13","slice-13"]; // hh
-
-	// var seq = ["slice-13","slice-10","slice-27","slice-27","slice-9"];
-
-	// oranges
-	// var seq = ["slice-16","slice-13","slice-22","slice-17"]; // the oranges
-	// var seq = ["slice-17","slice-15","slice-28","slice-28","slice-21"]; // one of the oranges, raw is least good
-	// var seq = ["slice-22","slice-20","slice-25","slice-25","slice-5"]; // one of the oranges, raw is best
-	// var seq = ["slice-13","slice-10","slice-27","slice-27","slice-9"];
-	// var seq = ["slice-16","slice-11","slice-2","slice-2","slice-12"];
-
-	// blues
-	// var seq = ["slice-8","slice-18","slice-9","slice-13","slice-13"];
-	// var seq = ["slice-27","slice-21","slice-13","slice-23","slice-23"];
-	var seq = ["slice-18","slice-8","slice-6","slice-28","slice-28"];
-
-	var buf = Buffer.alloc(s,2);
-	var play_pt = {
-		arg pt;
-		~slicePoints_ds.getPoint(pt,buf,{
-			buf.loadToFloatArray(action:{
-				arg arr;
-				var start = arr[0];
-				var num = arr[1];
-				var dur_sec = num / ~drums.sampleRate;
-				{
-					var sig = PlayBuf.ar(1,~drums,BufRateScale.ir(~drums),startPos:start,loop:0);
-					var env = EnvGen.kr(Env([0,1,1,0],[0.03,0.06-dur_sec,0.03]),doneAction:2);
-					sig.dup * env;
-				}.play;
+		FluidBufAmpGate.process(s,~drums,indices:~slicePoints,onThreshold:-20,offThreshold:-40,minSliceLength:~drums.sampleRate * 0.01,action:{
+			// slice_points_to_2d.(process_slicePoints);
+			~slicePoints.loadToFloatArray(action:{
+				arg fa;
+				fa = fa.clump(2);
+				~slicePoints = fa;
+				~slicePoints.postln;
+				process_slicePoints.value;
 			});
 		});
-	};
-	s.sync;
 
-	seq.do{
-		arg id;
-		play_pt.(id);
-		1.5.wait;
-	};
-}.play;
+	}.play;
+}
 )
 
 (
@@ -132,27 +146,24 @@ Routine{
 
 	s.sync;
 
-	~slicePoints.loadToFloatArray(action:{
-		arg slicePoints_fa;
-		(slicePoints_fa.size-1).do{
-			arg i;
-			var start_samps = slicePoints_fa[i];
-			var end_samps = slicePoints_fa[i+1];
-			var dur_samps = end_samps - start_samps;
-			FluidBufSpectralShape.process(s,~drums,start_samps,dur_samps,features:spec_buf,action:{
-				FluidBufStats.process(s,spec_buf,numChans:1,stats:spec_stats,action:{
-					FluidBufLoudness.process(s,~drums,start_samps,dur_samps,features:loudness_buf,action:{
-						FluidBufStats.process(s,loudness_buf,numChans:1,stats:loudness_stats,action:{
-							FluidBufCompose.process(s,spec_stats,numFrames:1,destination:x_buf,action:{
-								FluidBufCompose.process(s,loudness_stats,numFrames:1,destination:x_buf,destStartFrame:1,action:{
-									var id = "slice-%".format(i);
-									~ds.addPoint(id,x_buf,{
-										//start_samps.class.postln;
-										//dur_samps.class.postln;
-										playback_points_buf.loadCollection([start_samps,dur_samps],action:{
-											~ds_playback.addPoint(id,playback_points_buf,{
-												condition.unhang;
-											});
+	~slicePoints.do{
+		arg arr, i;
+		var start_samps = arr[0];
+		var end_samps = arr[1];
+		var dur_samps = end_samps - start_samps;
+		FluidBufSpectralShape.process(s,~drums,start_samps,dur_samps,features:spec_buf,action:{
+			FluidBufStats.process(s,spec_buf,numChans:1,stats:spec_stats,action:{
+				FluidBufLoudness.process(s,~drums,start_samps,dur_samps,features:loudness_buf,action:{
+					FluidBufStats.process(s,loudness_buf,numChans:1,stats:loudness_stats,action:{
+						FluidBufCompose.process(s,spec_stats,numFrames:1,destination:x_buf,action:{
+							FluidBufCompose.process(s,loudness_stats,numFrames:1,destination:x_buf,destStartFrame:1,action:{
+								var id = "slice-%".format(i);
+								~ds.addPoint(id,x_buf,{
+									//start_samps.class.postln;
+									//dur_samps.class.postln;
+									playback_points_buf.loadCollection([start_samps,dur_samps],action:{
+										~ds_playback.addPoint(id,playback_points_buf,{
+											condition.unhang;
 										});
 									});
 								});
@@ -161,17 +172,17 @@ Routine{
 					});
 				});
 			});
-			"analyzing slice % / % complete".format(i+1,slicePoints_fa.size-1).postln;
-			//start_samps.postln;
-			//dur_samps.postln;
-			//"".postln;
-			condition.hang;
-		};
+		});
+		"analyzing slice % / % complete".format(i+1,~slicePoints.size).postln;
+		//start_samps.postln;
+		//dur_samps.postln;
+		//"".postln;
+		condition.hang;
+	};
 
-		// ~ds.print;
-		// ~ds_playback.print;
-		~ds_playback.write("/Users/macprocomputer/Desktop/_flucoma/learn/scaling/jsons/210910_153717/drums_sliceStart_nSamps.json")
-	});
+	// ~ds.print;
+	// ~ds_playback.print;
+	~ds_playback.write("/Users/macprocomputer/Desktop/_flucoma/learn/scaling/jsons/210910_153717/drums_sliceStart_nSamps.json")
 }.play;
 )
 
@@ -247,40 +258,51 @@ Routine{
 						arg dict;
 						Routine{
 							var condition = Condition.new;
-							var nn_chart = Array.newClear(dict.at("data").size);
+							//var nn_chart = Array.newClear(dict.at("data").size);
 							var neighbor_bags = Dictionary.new;
+							~nn_chart = Dictionary.new;
 							dict.at("data").keysValuesDo({
 								arg key, val, i_;
-								nn_chart[i_] = Array.newClear(5);
-								nn_chart[i_][0] = key;
+								~nn_chart.put(key,Array.newClear(4));
+
 								neighbor_bags.put(key,Bag.new);
-								"point:\t\t\t\t\t\t%".format(key).postln;
+
 								~ds.getPoint(key,~x_buf,{
 									~raw.tree.kNearest(~x_buf,{
 										arg nearest_list;
-										"raw data nearest neighbor:\t%".format(nearest_list[1]).postln;
-										nn_chart[i_][1] = nearest_list[1];
+
+										~nn_chart.at(key)[0] = nearest_list[1];
 										neighbor_bags.at(key).add(nearest_list[1]);
 										~get_nearest.(key,~norm,{
 											arg near0;
-											"% nearest neighbor:\t\t%".format(~norm.name,near0).postln;
-											nn_chart[i_][2] = near0;
+
+											~nn_chart.at(key)[1] = near0;
 											neighbor_bags.at(key).add(near0);
 											~get_nearest.(key,~stand,{
 												arg near1;
-												"% nearest neighbor:\t\t%".format(~stand.name,near1).postln;
-												nn_chart[i_][3] = near1;
+
+												~nn_chart.at(key)[2] = near1;
 												neighbor_bags.at(key).add(near1);
 												~get_nearest.(key,~robust,{
 													arg near2;
-													"% nearest neighbor:\t%".format(~robust.name,near2).postln;
-													nn_chart[i_][4] = near2;
+
+													~nn_chart.at(key)[3] = near2;
 													neighbor_bags.at(key).add(near2);
-													"contents:\t\t\t\t\t%".format(neighbor_bags.at(key).contents.size).postln;
-													if(neighbor_bags.at(key).contents.size == 4,{
-														"--- ALL NEIGHBORS ARE DIFFERENT FOR %".format(key).postln;
+													if(neighbor_bags.at(key).contents.size > 2,{
+														"point:\t\t\t\t\t\t%".format(key).postln;
+														"contents:\t\t\t\t\t%".format(neighbor_bags.at(key).contents.size).postln;
+
+														"raw data nearest neighbor:\t%".format(nearest_list[1]).postln;
+														"% nearest neighbor:\t\t%".format(~norm.name,near0).postln;
+														"% nearest neighbor:\t\t%".format(~stand.name,near1).postln;
+														"% nearest neighbor:\t%".format(~robust.name,near2).postln;
+														if(neighbor_bags.at(key).contents.size == 4,{
+															"--- ALL NEIGHBORS ARE DIFFERENT FOR %".format(key).postln;
+														});
+														"".postln;
 													});
-													"".postln;
+
+
 													condition.unhang;
 												});
 											});
@@ -290,21 +312,72 @@ Routine{
 								condition.hang;
 							});
 
-							ArrayToCSV(nn_chart,"/Users/macprocomputer/Desktop/_flucoma/code/graphics/scaling example/nn_chart.csv");
+							//ArrayToCSV(nn_chart,"/Users/macprocomputer/Desktop/_flucoma/code/graphics/scaling example/neighbors_chart.csv");
 
-							~stamp = Date.localtime.stamp;
+							/*							~stamp = Date.localtime.stamp;
 							~dir = "/Users/macprocomputer/Desktop/_flucoma/learn/scaling/jsons/%/".format(~stamp);
 							~dir.mkdir;
 							~raw.ds.write(~dir+/+"drums_raw_%.json".format(~stamp));
 							~norm.ds.write(~dir+/+"drums_norm_%.json".format(~stamp));
 							~stand.ds.write(~dir+/+"drums_stand_%.json".format(~stamp));
-							~robust.ds.write(~dir+/+"drums_robust_%.json".format(~stamp));
+							~robust.ds.write(~dir+/+"drums_robust_%.json".format(~stamp));*/
 						}.play;
 					});
 				});
 			});
 		});
 	});
+}.play;
+)
+
+(
+// hear
+Routine{
+	// blues
+	// var seq = ["slice-27","slice-21","slice-13","slice-23","slice-23"]; // kick
+	// var seq = ["slice-18","slice-8","slice-6","slice-28","slice-28"]; // snare
+	// var seq = ["slice-8","slice-18","slice-9","slice-13","slice-13"]; // hh
+
+	// oranges
+	// var seq = ["slice-16","slice-13","slice-22","slice-17"]; // the oranges
+	// var seq = ["slice-17","slice-15","slice-28","slice-28","slice-21"]; // one of the oranges, raw is least good
+	// var seq = ["slice-22","slice-20","slice-25","slice-25","slice-5"]; // one of the oranges, raw is best
+	// var seq = ["slice-13","slice-10","slice-27","slice-27","slice-9"]; // norm / stand is best
+	// var seq = ["slice-16","slice-11","slice-2","slice-2","slice-12"]; // not interesting
+
+	// purple
+	// var seq = ["slice-20","slice-22","slice-22","slice-22","slice-21"];
+
+
+	var id = "slice-16";
+
+	var seq = [id] ++ ~nn_chart.at(id);
+
+
+	var buf = Buffer.alloc(s,2);
+	var play_pt = {
+		arg pt;
+		~slicePoints_ds.getPoint(pt,buf,{
+			buf.loadToFloatArray(action:{
+				arg arr;
+				var start = arr[0];
+				var num = arr[1];
+				var dur_sec = num / ~drums.sampleRate;
+				{
+					var sig = PlayBuf.ar(1,~drums,BufRateScale.ir(~drums),startPos:start,loop:0);
+					var env = EnvGen.kr(Env([0,1,1,0],[0.03,0.06-dur_sec,0.03]),doneAction:2);
+					sig.dup * env;
+				}.play;
+			});
+		});
+	};
+	s.sync;
+
+	seq.do{
+		arg id;
+		play_pt.(id);
+		1.5.wait;
+	};
 }.play;
 )
 

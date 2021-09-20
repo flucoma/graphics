@@ -8,8 +8,6 @@ import csv
 import os
 import glob
 
-
-
 colors = {
     # 'raw':(1,0,0),
     # 'norm':(0,1,0),
@@ -56,7 +54,7 @@ robuster = RobustScaler()
 # robuster = RobustScaler(quantile_range=(10,90))
 
 data_norm = normer.fit_transform(raw_data)
-data_stan = stander.fit_transform(raw_data)
+data_stand = stander.fit_transform(raw_data)
 data_robu = robuster.fit_transform(raw_data)
 
 # fig, ax = plt.subplots(1,1)
@@ -97,7 +95,7 @@ def norm_plot():
 def stand_plot():
     fig, ax = plt.subplots(1,1)
 
-    plot_data(data_stan,ax)
+    plot_data(data_stand,ax)
     xmin = -3
     xmax = 3
     ymin = -3
@@ -167,26 +165,38 @@ def label_point(id,data,ax_,xoff=0.05,yoff=-0.05,change_color=False):
 
 # ===========================================================================
 
+source_1 = 'slice-27'
+raw_1 = 'slice-21'
+norm_1 = 'slice-13'
+stand_1 = 'slice-23'
+robust_1 = 'slice-23'
+
+source_2 = 'slice-17'
+raw_2 = 'slice-15'
+norm_2 = 'slice-28'
+stand_2 = 'slice-28'
+robust_2 = 'slice-21'
+
 # RAW
 fig, ax = raw_plot()
 image_counter = show_or_save(fig,ax,'raw',image_counter)
 
-label_point('slice-27',raw_data,ax,50,-300,change_color=True)
+label_point(source_1,raw_data,ax,50,-300,change_color=True)
 image_counter = show_or_save(fig,ax,'raw with one label',image_counter)
 
-label_point('slice-21',raw_data,ax,-800,150,True)
-connect_two_ids(raw_data,"slice-27","slice-21",ax,colors['highlighted_line'])
+label_point(raw_1,raw_data,ax,-800,150,True)
+connect_two_ids(raw_data,source_1,raw_1,ax,colors['highlighted_line'])
 image_counter = show_or_save(fig,ax,'raw with neighbor',image_counter)
 
 # RAW ZOOMED
 fig, ax = raw_plot(2500,3500,-500,500)
 # image_counter = show_or_save(fig,ax,'raw',image_counter)
 
-label_point('slice-27',raw_data,ax,5,-30,change_color=True)
+label_point(source_1,raw_data,ax,5,-30,change_color=True)
 # image_counter = show_or_save(fig,ax,'raw with one label',image_counter)
 
-label_point('slice-21',raw_data,ax,-80,12,True)
-connect_two_ids(raw_data,"slice-27","slice-21",ax,colors['highlighted_line'])
+label_point(raw_1,raw_data,ax,-80,12,True)
+connect_two_ids(raw_data,source_1,raw_1,ax,colors['highlighted_line'])
 image_counter = show_or_save(fig,ax,'raw with neighbor zoomed',image_counter)
 
 # NORM
@@ -194,17 +204,17 @@ fig, ax = norm_plot()
 image_counter = show_or_save(fig,ax,'norm',image_counter)
 xoff = 0.02
 yoff = -0.01
-label_point('slice-27',data_norm,ax,xoff,yoff,True)
+label_point(source_1,data_norm,ax,xoff,yoff,True)
 image_counter = show_or_save(fig,ax,'norm with one labeled point',image_counter)
 
-label_point('slice-21',data_norm,ax,xoff,yoff+0.025,True)
+label_point(raw_1,data_norm,ax,xoff,yoff+0.025,True)
 image_counter = show_or_save(fig,ax,'norm 2 labeled points',image_counter)
 
-connect_two_ids(data_norm,"slice-27","slice-21",ax,colors['connector_lines'])
+connect_two_ids(data_norm,source_1,raw_1,ax,colors['connector_lines'])
 image_counter = show_or_save(fig,ax,'norm 2 labeled points and the line',image_counter)
 
-label_point('slice-13',data_norm,ax,xoff,yoff,True)
-connect_two_ids(data_norm,"slice-27","slice-13",ax,colors['highlighted_line'])
+label_point(norm_1,data_norm,ax,xoff,yoff,True)
+connect_two_ids(data_norm,source_1,norm_1,ax,colors['highlighted_line'])
 image_counter = show_or_save(fig,ax,'norm with 2 neighbors',image_counter)
 
 # STAND
@@ -212,17 +222,17 @@ fig, ax = stand_plot()
 image_counter = show_or_save(fig,ax,'standardized',image_counter)
 xoff = 0.05
 yoff = 0.05
-connect_two_ids(data_stan,"slice-27","slice-21",ax,colors['connector_lines'])
-label_point('slice-27',data_stan,ax,xoff,yoff,True)
-label_point('slice-21',data_stan,ax,xoff,yoff,True)
+connect_two_ids(data_stand,source_1,raw_1,ax,colors['connector_lines'])
+label_point(source_1,data_stand,ax,xoff,yoff,True)
+label_point(raw_1,data_stand,ax,xoff,yoff,True)
 image_counter = show_or_save(fig,ax,'standardized with 1 neighbor',image_counter)
 
-connect_two_ids(data_stan,"slice-27","slice-13",ax,colors['connector_lines'])
-label_point('slice-13',data_stan,ax,xoff+0.05,yoff-0.2,True)
+connect_two_ids(data_stand,source_1,norm_1,ax,colors['connector_lines'])
+label_point(norm_1,data_stand,ax,xoff+0.05,yoff-0.2,True)
 image_counter = show_or_save(fig,ax,'stand with 2 neighbors',image_counter)
 
-connect_two_ids(data_stan,"slice-27","slice-23",ax,colors['highlighted_line'])
-label_point('slice-23',data_stan,ax,xoff-0.6,yoff,True)
+connect_two_ids(data_stand,source_1,stand_1,ax,colors['highlighted_line'])
+label_point(stand_1,data_stand,ax,xoff-0.6,yoff,True)
 image_counter = show_or_save(fig,ax,'stand with 3 neighbors',image_counter)
 
 # ROBUST
@@ -230,15 +240,59 @@ fig, ax = robust_plot()
 image_counter = show_or_save(fig,ax,'robust',image_counter)
 xoff = 0.05
 yoff = 0.05
-connect_two_ids(data_robu,"slice-27","slice-21",ax,colors['connector_lines'])
-label_point('slice-27',data_robu,ax,xoff,yoff,True)
-label_point('slice-21',data_robu,ax,xoff,yoff,True)
+connect_two_ids(data_robu,source_1,raw_1,ax,colors['connector_lines'])
+label_point(source_1,data_robu,ax,xoff,yoff,True)
+label_point(raw_1,data_robu,ax,xoff,yoff,True)
 image_counter = show_or_save(fig,ax,'robust with 1 neighbor',image_counter)
 
-connect_two_ids(data_robu,"slice-27","slice-13",ax,colors['connector_lines'])
-label_point('slice-13',data_robu,ax,xoff,yoff,True)
+connect_two_ids(data_robu,source_1,norm_1,ax,colors['connector_lines'])
+label_point(norm_1,data_robu,ax,xoff,yoff,True)
 image_counter = show_or_save(fig,ax,'robust with 2 neighbors',image_counter)
 
-connect_two_ids(data_robu,"slice-27","slice-23",ax,colors['highlighted_line'])
-label_point('slice-23',data_robu,ax,xoff-0.6,yoff,True)
+connect_two_ids(data_robu,source_1,robust_1,ax,colors['highlighted_line'])
+label_point(stand_1,data_robu,ax,xoff-0.6,yoff,True)
 image_counter = show_or_save(fig,ax,'robust with 3 neighbors',image_counter)
+
+# ROBUST AGAIN
+fig, ax = robust_plot()
+image_counter = show_or_save(fig,ax,'robust',image_counter)
+xoff = 0.05
+yoff = 0.05
+label_point(source_2,data_robu,ax,xoff,yoff,True)
+image_counter = show_or_save(fig,ax,'robust new point',image_counter)
+
+label_point(raw_2,data_robu,ax,xoff+0.05,yoff-0.05,True)
+connect_two_ids(data_robu,source_2,raw_2,ax,colors['connector_lines'])
+image_counter = show_or_save(fig,ax,'robust with raw nearest neighbor',image_counter)
+
+connect_two_ids(data_robu,source_2,norm_2,ax,colors['connector_lines'])
+label_point(norm_2,data_robu,ax,xoff+0.05,yoff,True)
+image_counter = show_or_save(fig,ax,'robust with normalized nearest neighbors',image_counter)
+
+connect_two_ids(data_robu,source_2,raw_1,ax,colors['highlighted_line'])
+label_point(raw_1,data_robu,ax,xoff-0.6,yoff,True)
+image_counter = show_or_save(fig,ax,'robust with all neighbors--robust is different',image_counter)
+
+# same points, stand
+# fig, ax = stand_plot()
+# # image_counter = show_or_save(fig,ax,'stand',image_counter)
+# xoff = 0.05
+# yoff = 0.05
+# label_point(source_2,data_stand,ax,xoff,yoff,True)
+# # image_counter = show_or_save(fig,ax,'robust new point',image_counter)
+
+# label_point(raw_2,data_stand,ax,xoff+0.05,yoff-0.05,True)
+# connect_two_ids(data_stand,source_2,raw_2,ax,colors['connector_lines'])
+# # image_counter = show_or_save(fig,ax,'robust with raw nearest neighbor',image_counter)
+
+# connect_two_ids(data_stand,source_2,norm_2,ax,colors['connector_lines'])
+# label_point(norm_2,data_stand,ax,xoff+0.05,yoff,True)
+# # image_counter = show_or_save(fig,ax,'robust with normalized nearest neighbors',image_counter)
+
+# connect_two_ids(data_stand,source_2,stand_2,ax,colors['highlighted_line'])
+# label_point(stand_2,data_stand,ax,xoff-0.6,yoff,True)
+# image_counter = show_or_save(fig,ax,'stand with same neighbors',image_counter)
+
+# connect_two_ids(data_stand,source_2,robust_2,ax,colors['highlighted_line'])
+# label_point(robust_2,data_stand,ax,xoff-0.6,yoff,True)
+# image_counter = show_or_save(fig,ax,'stand with same neighbors',image_counter)
