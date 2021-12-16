@@ -38,7 +38,7 @@ s.waitForBoot{
 
 	databuf.loadToFloatArray(action:{
 		arg data;
-		var fast, slow, diff, min = inf, max = -inf;
+		var fast, slow, diff, min = inf, max = -inf, img;
 
 		data.do({
 			arg val;
@@ -92,8 +92,11 @@ s.waitForBoot{
 		win.front;
 
 		File.delete(path);
+
+		img = Image.fromWindow(win,Rect(0,0,win.bounds.width,win.bounds.height));
+		//img.write("/Users/macprocomputer/Desktop/_flucoma/code/graphics/AmpSlice/%_ampslice.png".format(Date.localtime.stamp),quality:100);
 	});
 };
 )
 
-FluidAmpSlice
+Image
