@@ -1,4 +1,7 @@
 (
+s.options.inDevice_("MacBook Pro Microphone");
+// s.options.outDevice_("MacBook Pro Speakers");
+s.options.outDevice_("External Headphones");
 s.options.sampleRate_(44100);
 s.waitForBoot{
 	var start = 352068;
@@ -6,7 +9,7 @@ s.waitForBoot{
 	var num = end - start;
 	var buf = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"),start,num);
 	// var buf = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"));
-	var databuf, win, sfv, path, bounds, lineWidth = 2;
+	var databuf, stamp = Date.localtime.stamp;
 
 	var colors = "1f77b4ff7f0e2ca02cd627289467bd8c564be377c27f7f7fbcbd2217becf".clump(6).collect{
 		arg six;
@@ -35,12 +38,15 @@ s.waitForBoot{
 	}.play;
 
 	buf.duration.wait;
+	0.1.wait;
 
 	s.sync;
 
+	"buf recorded".postln;
+
 	databuf.loadToFloatArray(action:{
 		arg data;
-		var fast, slow, diff, diff2, min = inf, max = -inf, img;
+		var fast, slow, diff, diff2, min = inf, max = -inf;
 
 		data.do({
 			arg val;
@@ -53,61 +59,70 @@ s.waitForBoot{
 		data = data.clump(2).flop;
 
 		data.postln;
+		data.shape.postln;
 
 		fast = data[0];
 		slow = data[1];
 		diff = data[0] - data[1];
 		diff2 = data[1] - data[0];
 
+		[[fast,slow],[fast,slow,diff],[fast,slow,nil,diff2]].do{
+			arg plotthese, img_i;
+			var win, sfv, path, bounds, lineWidth = 2, img;
 
-		path = "%%_%_FluidWaveform.wav".format(PathName.tmp,Date.localtime.stamp,UniqueID.next);
-		bounds = Rect(50,400,1600,400);
+			path = "%%_%_FluidWaveform.wav".format(PathName.tmp,Date.localtime.stamp,UniqueID.next);
 
-		win = Window("FluidWaveform",bounds);
-		buf.write(path,"wav");
+			path.postln;
 
-		s.sync;
+			bounds = Rect(50,400,1600,400);
 
-		sfv = SoundFileView(win,Rect(0,0,bounds.width,bounds.height));
-		sfv.peakColor_(Color(*0.8.dup(3)));
-		// sfv.rmsColor_(Color.black);
-		sfv.rmsColor_(Color.clear);
-		sfv.background_(Color.white);
-		sfv.readFile(SoundFile(path));
-		sfv.gridOn_(false);
+			win = Window("FluidWaveform",bounds);
+			buf.write(path,"wav");
 
-		UserView(win,Rect(0,0,bounds.width,bounds.height))
-		.drawFunc_({
-			Pen.width_(lineWidth);
-			[fast,slow,nil,diff2].do{
-				arg chan, j;
-				if(chan.notNil,{
-					chan = chan.resamp1(bounds.width).linlin(0,1,bounds.height,0);
-					Pen.moveTo(Point(0,chan[0]));
-					chan[1..].do{
-						arg val, i;
-						Pen.lineTo(Point(i+1,val));
-					};
-					Pen.color_(colors[j]);
-					Pen.stroke;
-				})
-			};
-		});
+			s.sync;
 
-		win.front;
+			sfv = SoundFileView(win,Rect(0,0,bounds.width,bounds.height));
+			sfv.peakColor_(Color(*0.8.dup(3)));
+			// sfv.rmsColor_(Color.black);
+			sfv.rmsColor_(Color.clear);
+			sfv.background_(Color.white);
+			sfv.readFile(SoundFile(path));
+			sfv.gridOn_(false);
 
-		File.delete(path);
+			s.sync;
 
-		s.sync;
+			File.delete(path);
 
-		img = Image.fromWindow(win);
+			UserView(win,Rect(0,0,bounds.width,bounds.height))
+			.drawFunc_({
+				Pen.width_(lineWidth);
+				plotthese.do{
+					arg chan, j;
+					if(chan.notNil,{
+						chan = chan.resamp1(bounds.width).linlin(0,1,bounds.height,0);
+						Pen.moveTo(Point(0,chan[0]));
+						chan[1..].do{
+							arg val, i;
+							Pen.lineTo(Point(i+1,val));
+						};
+						Pen.color_(colors[j]);
+						Pen.stroke;
+					})
+				};
+			});
 
-		s.sync;
+			win.front;
 
-		//img.plot;
-		//img.write("/Users/macprocomputer/Desktop/_flucoma/code/graphics/AmpSlice/%_ampslice.png".format(Date.localtime.stamp),quality:100);
+			s.sync;
+
+			img = Image.fromWindow(win);
+
+			s.sync;
+
+			//img.plot;
+			//img.write("/Users/macprocomputer/Desktop/_flucoma/code/graphics/AmpSlice/%_%_ampslice.png".format(stamp,img_i),quality:100);
+			win.close;
+		};
 	});
 };
 )
-
-Image
