@@ -1,0 +1,35 @@
+digraph G {
+
+  graph [ dpi = 300 ];
+  rankdir=LR
+  ranksep=1.5
+  node [fixedsize=true,width=1]
+  splines=line
+  nodesep="0.2";
+
+  edge [arrowsize="0.4"];
+
+  subgraph cluster_0 {
+		color=white;
+    node [style=solid,color=blue4, shape=circle];
+		"X Pos" "Y Pos";
+		label = "Inputs";
+	}
+
+	subgraph cluster_1 {
+		color=white;
+		node [style=solid,color=red2, shape=circle];
+		h00 h01 h02 h03 h04 h05 h06;
+		label = "Hidden Layer";
+	}
+
+	subgraph cluster_3 {
+		color=white;
+		node [style=solid,color=seagreen2, shape=circle];
+		synth00 synth01 synth02 synth03 synth04 synth05 synth06 synth07 synth08 synth09;
+		label="Outputs";
+	}
+
+  { "X Pos" "Y Pos" } -> { h00 h01 h02 h03 h04 h05 h06 }
+               -> { synth00 synth01 synth02 synth03 synth04 synth05 synth06 synth07 synth08 synth09 }
+}
