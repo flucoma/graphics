@@ -1,34 +1,104 @@
 (
+// get activations plots
 s.waitForBoot{
 	~drums = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"));
 	~bases = Buffer(s);
 	~activations = Buffer(s);
+	~resynth = Buffer(s);
 	~n_components = 3;
 	// process it:
 	FluidBufNMF.processBlocking(s,~drums,activations:~activations,bases:~bases,resynth:~resynth,components:~n_components,action:{
 
 		~stamp = Date.localtime.stamp;
-		[[~bases,"Bases"],[~activations,"Activations"]].do{
-			arg arr;
-			var buffer = arr[0];
-			var name = arr[1];
-			arr.postln;
-			buffer.loadToFloatArray(action:{
-				arg buffer_contents;
-				var win, comp, plot, img;
-				buffer_contents = buffer_contents.clump(~n_components).flop;
-				fork({
-					win = Window("Bases", Rect(200, 200, 1400, 600));
+		~folder = "/Users/macprocomputer/Desktop/_flucoma/code/graphics/BufNMF/%".format(~stamp);
+
+		~folder.mkdir;
+
+		fork({
+			[[~bases,"Bases"],[~activations,"Activations"]].do{
+				arg arr;
+				var buffer = arr[0];
+				var name = arr[1];
+				arr.postln;
+				buffer.loadToFloatArray(action:{
+					arg buffer_contents;
+					var win, comp, plot, img;
+					buffer_contents = buffer_contents.clump(~n_components).flop;
+
+					win = Window(name, Rect(200, 200, 1400, 600));
 					comp = CompositeView(win, Rect(0, 0, win.bounds.width, win.bounds.height));
 					plot = Plotter("plot", parent: comp).value_(buffer_contents);
 					win.front;
-					// img = Image.fromWindow(win);
-					//img.write("/Users/macprocomputer/Desktop/_flucoma/code/graphics/BufNMF/%_%.png".format(~stamp,name),quality:100);
+					s.sync;
+					img = Image.fromWindow(win);
+					s.sync;
+					img.write(~folder+/+"%_%.png".format(~stamp,name),quality:100);
+					s.sync;
 					win.close;
-				},AppClock)
-			});
-		};
-		"done".postln;
+				});
+			};
+
+			s.sync;
+
+			~writebuf = Buffer(s);
+
+			~n_components.do{
+				arg i;
+				FluidBufCompose.processBlocking(s,~resynth,startChan:i,numChans:1,destination:~writebuf);
+				~writebuf.write(~folder+/+"%_component_%.wav".format(~stamp,i),"wav");
+			};
+
+			s.sync;
+
+
+			// ================== filtering ==========================
+
+			~dur = 5;
+			~filterbuf = Buffer.alloc(s,s.sampleRate * ~dur,~n_components);
+
+			{
+				RecordBuf.ar(FluidNMFFilter.ar(WhiteNoise.ar(0.dbamp),~bases,~n_components),~filterbuf,loop:0,doneAction:2);
+			}.play;
+
+			~dur.wait;
+			1.wait;
+
+			~writebuf = Buffer(s);
+
+			~n_components.do{
+				arg i;
+				FluidBufCompose.processBlocking(s,~filterbuf,startChan:i,numChans:1,destination:~writebuf);
+				~writebuf.write(~folder+/+"%_base_%_filtering.wav".format(~stamp,i),"wav");
+			};
+
+			s.sync;
+
+			// ============== enveloping =============================
+
+			~actsbuf = Buffer.alloc(s,~drums.numFrames,~n_components);
+
+			{
+				var env = PlayBuf.ar(~n_components,~activations,BufRateScale.ir(~activations),loop:0,doneAction:2);
+				var sig = WhiteNoise.ar(0.dbamp) * env;
+				sig.poll;
+				RecordBuf.ar(sig,~actsbuf,loop:0,doneAction:2);
+				// sig;
+				Silence.ar;
+			}.play;
+
+			~drums.duration.wait;
+			1.wait;
+
+			~writebuf = Buffer(s);
+
+			~n_components.do{
+				arg i;
+				FluidBufCompose.processBlocking(s,~actsbuf,startChan:i,numChans:1,destination:~writebuf);
+				~writebuf.write(~folder+/+"%_activation_%_enveloping.wav".format(~stamp,i),"wav");
+			};
+
+			"done".postln;
+		},AppClock);
 	});
 };
 )
