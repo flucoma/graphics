@@ -104,11 +104,13 @@ FluidBufNMF.processBlocking(s,~golcar4s,bases:~bases,activations:~activations,re
 ~img.write(PathName(thisProcess.nowExecutingPath).pathOnly+/+"%_nmf_match.png".format(Date.localtime.stamp),quality:100);
 
 
-
 // and then play the whole 22 second sound file through FluidNMFMatch to see where in the sound file the spectral template
 // of the dog bark is found. because the FluidBufNMF analysis starts from a stochastic state, we can't be sure which base
 // contains the dog bark, but watching the green bars in this window will make very clear which one is detecting where
 // in the sound file a dog bark is found
+
+~rec_buf = Buffer.alloc(s,~golcar.numFrames / s.options.blockSize,2);
+
 (
 Task({
 	var match = [0,0]; // an array for storing the output of FluidNMFMatch
@@ -129,9 +131,10 @@ Task({
 
 	{
 		var sig = PlayBuf.ar(1,~golcar,BufRateScale.ir(~golcar),doneAction:2); // play the whole sound file
-
+		var match = FluidNMFMatch.kr(sig,~bases,2);
+		RecordBuf.kr(match,~rec_buf,loop:0,doneAction:2);
 		// 30 times per second send the output of FluidNMFMatch to the language
-		SendReply.kr(Impulse.kr(30),"/nmfmatch",FluidNMFMatch.kr(sig,~bases,2));
+		SendReply.kr(Impulse.kr(30),"/nmfmatch",match);
 		sig;
 	}.play;
 
@@ -145,3 +148,5 @@ Task({
 
 },AppClock).play;
 )
+
+~fw = FluidWaveform(~golcar,featureBuffer:~rec_buf,bounds:Rect(0,0,1200,300),stackFeatures:false);
