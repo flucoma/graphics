@@ -146,35 +146,35 @@ Window.closeAll;
 ~magbuf.loadToFloatArray(action:{
 	arg mags;
 	var stamp = Date.localtime.stamp;
-	var folder = PathName(thisProcess.nowExecutingPath).pathOnly+/+"outputs/%".format(stamp);
+	var folder = PathName(thisProcess.nowExecutingPath).pathOnly+/+"hpss_outputs/%".format(stamp);
 	folder.mkdir;
 
 	mags = mags.clump(~magbuf.numChannels).flop;
 
 	defer{
-		~matrix_to_spectrogram.(mags,~colors).write(folder+/+"%_00_Original_Spectrogram.png".format(stamp));
+		~matrix_to_spectrogram.(mags,~colors).write(folder+/+"%_00_Original_Spectrogram.png".format(stamp),quality:100);
 
 		~harm_enhanced = ~make_harmonic_enhanced_spectrum.(mags,17);
-		~matrix_to_spectrogram.(~harm_enhanced,~colors).write(folder+/+"%_01_Harmonic_Enhanced_Spectrogram.png".format(stamp));
+		~matrix_to_spectrogram.(~harm_enhanced,~colors).write(folder+/+"%_01_Harmonic_Enhanced_Spectrogram.png".format(stamp),quality:100);
 
 		~perc_enhanced = ~make_percussive_enhanced_spectrum.(mags,31);
-		~matrix_to_spectrogram.(~perc_enhanced,~colors).write(folder+/+"%_02_Percussive_Enhanced_Spectrogram.png".format(stamp));
+		~matrix_to_spectrogram.(~perc_enhanced,~colors).write(folder+/+"%_02_Percussive_Enhanced_Spectrogram.png".format(stamp),quality:100);
 
 		~soft_masks = ~make_masks_soft.(~harm_enhanced,~perc_enhanced);
-		~matrix_to_mask.(~soft_masks[0],~colors).write(folder+/+"%_03_Harmonic_Mask_(Soft).png".format(stamp));
-		~matrix_to_mask.(~soft_masks[1],~colors).write(folder+/+"%_04_Percussive_Mask_(Soft).png".format(stamp));
+		~matrix_to_mask.(~soft_masks[0],~colors).write(folder+/+"%_03_Harmonic_Mask_(Soft).png".format(stamp),quality:100);
+		~matrix_to_mask.(~soft_masks[1],~colors).write(folder+/+"%_04_Percussive_Mask_(Soft).png".format(stamp),quality:100);
 		~harm_ouptut_soft = ~matrix_binOp.(mags,~soft_masks[0],{arg a, b; a * b.min(1)});
 		~perc_ouptut_soft = ~matrix_binOp.(mags,~soft_masks[1],{arg a, b; a * b.min(1)});
-		~matrix_to_spectrogram.(~harm_ouptut_soft,~colors).write(folder+/+"%_05_Harmonic_Output_(Soft_Mask).png".format(stamp));
-		~matrix_to_spectrogram.(~perc_ouptut_soft,~colors).write(folder+/+"%_06_Percussive_Output_(Soft_Mask).png".format(stamp));
+		~matrix_to_spectrogram.(~harm_ouptut_soft,~colors).write(folder+/+"%_05_Harmonic_Output_(Soft_Mask).png".format(stamp),quality:100);
+		~matrix_to_spectrogram.(~perc_ouptut_soft,~colors).write(folder+/+"%_06_Percussive_Output_(Soft_Mask).png".format(stamp),quality:100);
 
 		~binary_masks = ~make_masks_binary.(~harm_enhanced,~perc_enhanced);
-		~matrix_to_mask.(~binary_masks[0],~colors).write(folder+/+"%_07_Harmonic_Mask_(Binary).png".format(stamp));
-		~matrix_to_mask.(~binary_masks[1],~colors).write(folder+/+"%_08_Percussive_Mask_(Binary).png".format(stamp));
+		~matrix_to_mask.(~binary_masks[0],~colors).write(folder+/+"%_07_Harmonic_Mask_(Binary).png".format(stamp),quality:100);
+		~matrix_to_mask.(~binary_masks[1],~colors).write(folder+/+"%_08_Percussive_Mask_(Binary).png".format(stamp),quality:100);
 		~harm_ouptut_binary = ~matrix_binOp.(mags,~binary_masks[0],{arg a, b; a * b.min(1)});
 		~perc_ouptut_binary = ~matrix_binOp.(mags,~binary_masks[1],{arg a, b; a * b.min(1)});
-		~matrix_to_spectrogram.(~harm_ouptut_binary,~colors).write(folder+/+"%_09_Harmonic_Output_(Binary_Mask).png".format(stamp));
-		~matrix_to_spectrogram.(~perc_ouptut_binary,~colors).write(folder+/+"%_10_Percussive_Output_(Binary_Mask).png".format(stamp));
+		~matrix_to_spectrogram.(~harm_ouptut_binary,~colors).write(folder+/+"%_09_Harmonic_Output_(Binary_Mask).png".format(stamp),quality:100);
+		~matrix_to_spectrogram.(~perc_ouptut_binary,~colors).write(folder+/+"%_10_Percussive_Output_(Binary_Mask).png".format(stamp),quality:100);
 
 		"all done".postln;
 	}
