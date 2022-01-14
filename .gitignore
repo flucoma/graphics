@@ -2,3 +2,4 @@
 *.wav
 BufNMF/output
 HPSS/hpss_outputs
+HPSS/median_filter_outputs
