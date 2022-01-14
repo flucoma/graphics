@@ -3,7 +3,7 @@ digraph G {
   graph [ dpi = 300 ];
   rankdir=LR
   ranksep=1.5
-  node [fixedsize=true,width=1]
+  node [fixedsize=true,width=1,label=""]
   splines=line
   nodesep="0.2";
 
