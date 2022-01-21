@@ -21,14 +21,6 @@
 	img;
 };
 
-~matrix_maxItem = {
-	arg mat;
-	mat.collect{
-		arg row;
-		row.maxItem;
-	}.maxItem;
-};
-
 ~colors = CSVFileReader.readInterpret(FluidFilesPath("../Resources/color-schemes/CET-L16.csv")).collect{
 	arg arr;
 	Color.fromArray(arr);
@@ -119,9 +111,8 @@
 	// ArrayXd HV = mH.col(0) + mV.col(0);
 	var hv = ~matrix_binOp.(harm,perc,{arg a, b; a + b});
 
-	var max = ~matrix_maxItem.(hv).max(epsilon);
 	// ArrayXd mult = (1.0 / HV.max(epsilon));
-	var mult = ~matrix_uniOp.(hv,{arg v; 1.0 / max});
+	var mult = ~matrix_uniOp.(hv,{arg v; 1.0 / v.max(epsilon)});
 
 	// harmonicMask = (mH.col(0) * mult);
 	var harm_mask = ~matrix_binOp.(harm,mult,{arg a, b; a * b});
