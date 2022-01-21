@@ -1,40 +1,3 @@
-/*(
-s.waitForBoot{
-var guitar = Buffer.read(s,FluidFilesPath("Tremblay-AaS-AcousticStrums-M.wav"),startFrame:560742,numFrames:388250);
-// var snare = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"),startFrame:44100 * 1.157,numFrames:44100 * 0.291);
-// var combined = Buffer(s);
-var magsbuf = Buffer(s);
-var stamp = Date.localtime.stamp;
-var folder = PathName(thisProcess.nowExecutingPath).pathOnly+/+"hpss_outputs/%_just_bands".format(stamp);
-
-folder.mkdir;
-
-"hpss_functions.scd".loadRelative;
-
-s.sync;
-
-// FluidBufCompose.processBlocking(s,guitar,numFrames:guitar.sampleRate * 3,destination:combined,gain:-6.dbamp);
-// FluidBufCompose.processBlocking(s,snare,destination:combined,destStartFrame:44100 * 1,destGain:1,gain:-6.dbamp);
-FluidBufSTFT.processBlocking(s,guitar,magnitude:magsbuf);
-
-s.sync;
-
-magsbuf.postln;
-
-magsbuf.loadToFloatArray(action:{
-arg mags;
-mags = mags.clump(magsbuf.numChannels).flop;
-mags.postln;
-mags.shape.postln;
-
-defer{
-~matrix_to_spectrogram.(mags,~colors).write(folder+/+"%_00_Original_Spectrogram.png".format(stamp),quality:100);
-};
-});
-
-};
-)*/
-
 (
 s.waitForBoot{
 	Task{
@@ -48,6 +11,15 @@ s.waitForBoot{
 
 		var harm_filter_len = 51;//17
 		var perc_filter_len = 91;//31
+
+		var save_fw = {
+			arg fw, path;
+			fork({
+				var img = Image.fromWindow(fw.win);
+				1.wait;
+				img.write(path,"png",quality:100);
+			},AppClock);
+		};
 
 		if(writeFiles,{folder.mkdir});
 
@@ -97,7 +69,7 @@ s.waitForBoot{
 					var fw = FluidWaveform(featureBuffer:b,bounds:Rect(0,0,1200,300),normalizeFeaturesIndependently:false);
 					if(writeFiles,{
 						1.wait;
-						fw.write(folder+/+"03_median_filter_on_a_row.png");
+						save_fw.(fw,folder+/+"03_median_filter_on_a_row.png");
 						fw.close;
 					});
 				},AppClock);
@@ -112,7 +84,7 @@ s.waitForBoot{
 					var fw = FluidWaveform(featureBuffer:b,bounds:Rect(0,0,1200,300),normalizeFeaturesIndependently:false);
 					if(writeFiles,{
 						1.wait;
-						fw.write(folder+/+"04_median_filter_on_a_column.png");
+						save_fw.(fw,folder+/+"04_median_filter_on_a_column.png");
 						fw.close;
 					});
 				},AppClock);
