@@ -1,9 +1,13 @@
 (
+~save_img = {
+	arg win, path;
+	var img = Image.fromWindow(win);
+	img.write(path,"png",quality:100);
+};
 // get activations plots
 s.waitForBoot{
 	fork({
 		var drums = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"));
-		var bases = Buffer(s);
 		var activations = Buffer(s);
 		var resynth = Buffer(s);
 		var n_components = 3;
@@ -11,53 +15,73 @@ s.waitForBoot{
 		var example_dur_buf = Buffer(s);
 		var stamp = Date.localtime.stamp;
 		var folder = "/Users/macprocomputer/Desktop/_flucoma/code/graphics/BufNMF/output/%".format(stamp);
+		// var folder = "/Users/macprocomputer/Desktop/_flucoma/code/learn-website/static/audio/buf-nmf-overview/";
 		var fw;
+		var bases = Buffer.loadCollection(s,513.collect{
+			arg i;
+			var kick = 0;
+			var snare = 0;
+			var hh = i.linlin(0,512,1.0,pi).sin;
+
+			if(i < 10,{kick = 1});
+
+			if((i > 10) && (i < 100),{snare = 1});
+
+			[kick,snare,hh];
+		}.flatten,3);
 
 		folder.mkdir;
 
 		s.sync;
-		fw = FluidWaveform(drums,bounds:Rect(0,0,1200,300));
+		fw = FluidWaveform(drums,bounds:Rect(0,0,1200,300),waveformColor:Color.black);
 		s.sync;
 		1.wait;
-		fw.write(folder+/+"00_original_waveform.png");
+		~save_img.(fw.win,folder+/+"00_original_waveform.png");
 		fw.close;
 		s.sync;
 		"original waveform saved".postln;
 
+		~rasterBuf = Buffer(s);
+		FluidBufMelBands.processBlocking(s,drums,features:~rasterBuf,windowSize:4096,hopSize:512,numBands:480);
 		s.sync;
-		fw = FluidWaveform(drums,bounds:Rect(0,0,1200,300),showSpectrogram:true,showWaveform:false,spectrogramColorScheme:1);
+		fw = FluidWaveform(rasterBuffer:~rasterBuf,rasterColorScheme:0);
 		s.sync;
 		1.wait;
-		fw.write(folder+/+"00_original_spectrogram.png");
+		~save_img.(fw.win,folder+/+"00_original_spectrogram_mel.png");
 		fw.close;
 		s.sync;
 		"original spectrogram saved".postln;
 
 		// process it:
-		FluidBufNMF.processBlocking(s,drums,activations:activations,bases:bases,resynth:resynth,components:n_components,action:{
+		FluidBufNMF.processBlocking(s,drums,activations:activations,bases:bases,basesMode:1,resynth:resynth,components:n_components,action:{
 
 			fork({
 				var filterbuf, exampleDur = 5, actsbuf;
 
-				fw = FluidWaveform(resynth,bounds:Rect(0,0,1200,300));
+				fw = FluidWaveform(resynth,bounds:Rect(0,0,1200,300),waveformColor:Color.black);
 				s.sync;
 				1.wait;
-				fw.write(folder+/+"00_resynth_buffer.png");
+				~save_img.(fw.win,folder+/+"00_resynth_buffer.png");
 				fw.close;
 				s.sync;
+
+				"resynth buffer png created".postln;
 
 				fw = FluidWaveform(
 					resynth,
 					featureBuffer:activations,
 					bounds:Rect(0,0,1200,300),
 					stackFeatures:true,
-					normalizeFeaturesIndependently:false
+					normalizeFeaturesIndependently:false,
+					waveformColor:Color.black
 				);
 				s.sync;
 				1.wait;
-				fw.write(folder+/+"00_resynth_buffer_with_activations.png");
+				~save_img.(fw.win,folder+/+"00_resynth_buffer_with_activations.png");
 				fw.close;
 				s.sync;
+
+				"activations png created".postln;
 
 				[[bases,"Bases"],[activations,"Activations"]].do{
 					arg arr;
@@ -68,8 +92,10 @@ s.waitForBoot{
 					fw = FluidWaveform(featureBuffer:buffer,bounds:Rect(0,0,1200,300),stackFeatures:true,normalizeFeaturesIndependently:false);
 					s.sync;
 					1.wait;
-					fw.write(folder+/+"01_%_plot.png".format(name));
+					~save_img.(fw.win,folder+/+"01_%_plot.png".format(name));
 					fw.close;
+					1.wait;
+
 					"% plot created".format(name).postln;
 				};
 
@@ -82,8 +108,20 @@ s.waitForBoot{
 					arg i;
 					FluidBufCompose.processBlocking(s,resynth,startChan:i,numChans:1,destination:dur_writeBuf);
 					s.sync;
+					// dur_writeBuf.plot;
 					dur_writeBuf.write(folder+/+"02_component_%.wav".format(i),"wav");
 					s.sync;
+
+					// ~rasterBuf = Buffer(s);
+					FluidBufMelBands.processBlocking(s,resynth,startChan:i,numChans:1,features:~rasterBuf,windowSize:4096,hopSize:512,numBands:480);
+					s.sync;
+					fw = FluidWaveform(rasterBuffer:~rasterBuf,rasterColorScheme:1);
+					s.sync;
+					1.wait;
+					~save_img.(fw.win,folder+/+"05_resynth_spectrogram_mel_component_%.png".format(i));
+					fw.close;
+					s.sync;
+					1.wait;
 				};
 
 				"components written to wav files".postln;

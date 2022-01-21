@@ -3,3 +3,6 @@
 BufNMF/output
 HPSS/hpss_outputs
 HPSS/median_filter_outputs
+BufNMF/mp3
+NMFMatch/outputs
+NMFMatch/mp3_128kbps
