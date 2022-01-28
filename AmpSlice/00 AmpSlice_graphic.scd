@@ -11,6 +11,8 @@ s.waitForBoot{
 	// var buf = Buffer.read(s,FluidFilesPath("Nicol-LoopE-M.wav"));
 	var databuf, stamp = Date.localtime.stamp;
 
+	var outfolder = PathName(thisProcess.nowExecutingPath).pathOnly+/+"outputs"+/+stamp;
+
 	var colors = "1f77b4ff7f0e2ca02cd627289467bd8c564be377c27f7f7fbcbd2217becf".clump(6).collect{
 		arg six;
 		Color(*six.clump(2).collect{
@@ -18,6 +20,8 @@ s.waitForBoot{
 			"0x%".format(two).interpret / 255;
 		});
 	};
+
+	outfolder.mkdir;
 
 	s.sync;
 
@@ -66,7 +70,7 @@ s.waitForBoot{
 		diff = data[0] - data[1];
 		diff2 = data[1] - data[0];
 
-		[[fast,slow],[fast,slow,diff],[fast,slow,nil,diff2]].do{
+		[[fast,slow],[fast,slow,diff]].do{
 			arg plotthese, img_i;
 			var win, sfv, path, bounds, lineWidth = 2, img;
 
@@ -85,6 +89,7 @@ s.waitForBoot{
 			sfv.peakColor_(Color(*0.8.dup(3)));
 			// sfv.rmsColor_(Color.black);
 			sfv.rmsColor_(Color.clear);
+			sfv.drawsBoundingLines_(false);
 			sfv.background_(Color.white);
 			sfv.readFile(SoundFile(path));
 			sfv.gridOn_(false);
@@ -120,7 +125,7 @@ s.waitForBoot{
 			s.sync;
 
 			//img.plot;
-			//img.write("/Users/macprocomputer/Desktop/_flucoma/code/graphics/AmpSlice/%_%_ampslice.png".format(stamp,img_i),quality:100);
+			img.write(outfolder+/+"%_%_ampslice.png".format(stamp,img_i),quality:100);
 			win.close;
 		};
 	});
