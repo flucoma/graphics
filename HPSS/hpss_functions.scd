@@ -109,15 +109,19 @@
 	var epsilon = 0.00001;
 
 	// ArrayXd HV = mH.col(0) + mV.col(0);
+	// add them together, so for example if at a certain point h = 6 and p = 2, then the hv = 8 right there
 	var hv = ~matrix_binOp.(harm,perc,{arg a, b; a + b});
 
 	// ArrayXd mult = (1.0 / HV.max(epsilon));
+	// now we'll take the recirpocal (1 / 8) of the sum as the multiplier we'll use below
 	var mult = ~matrix_uniOp.(hv,{arg v; 1.0 / v.max(epsilon)});
 
 	// harmonicMask = (mH.col(0) * mult);
+	// since the total was 8, the mult is (1/8), and h = 6, 6 * 1/8 = 0.75, so this mask will have 0.75. it is to have 75% of whatever the total energy was!
 	var harm_mask = ~matrix_binOp.(harm,mult,{arg a, b; a * b});
 
 	// percussiveMask = (mV.col(0) * mult);
+	// since the total was 8, the mult is (1/8), and p = 2, 2 * 1/8 = 0.25, so this mask will have 0.25. it is to have 25% of whatever the total energy was!
 	var perc_mask = ~matrix_binOp.(perc,mult,{arg a, b; a * b});
 
 	[harm_mask, perc_mask];
