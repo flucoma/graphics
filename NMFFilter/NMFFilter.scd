@@ -2,6 +2,8 @@
 var stamp = Date.localtime.stamp;
 var folder = PathName(thisProcess.nowExecutingPath).pathOnly+/+"output/%".format(stamp);
 
+Window.closeAll;
+
 ~save_img = {
 	arg win, path;
 	var img = Image.fromWindow(win);
@@ -56,6 +58,16 @@ s.waitForBoot{
 		s.sync;
 		"original spectrogram saved".postln;*/
 
+		~fw = FluidWaveform(drums,waveformColor:Color.black,bounds:Rect(0,0,1600,400));
+		s.sync;
+		1.wait;
+		~save_img.(~fw.win,folder+/+"00_orig.png");
+		~fw.close;
+		1.wait;
+
+		"orig image created".postln;
+
+
 		// process it:
 		FluidBufNMF.processBlocking(s,drums,activations:activations,bases:bases,basesMode:1,resynth:resynth,components:n_components,action:{
 
@@ -67,7 +79,7 @@ s.waitForBoot{
 					var name = arr[1];
 					var fw;
 
-					fw = FluidWaveform(featureBuffer:buffer,bounds:Rect(0,0,1200,300),stackFeatures:true,normalizeFeaturesIndependently:false);
+					fw = FluidWaveform(featuresBuffer:buffer,bounds:Rect(0,0,1600,400),stackFeatures:true,normalizeFeaturesIndependently:false);
 					s.sync;
 					1.wait;
 					~save_img.(fw.win,folder+/+"01_%_plot.png".format(name));
@@ -96,6 +108,15 @@ s.waitForBoot{
 
 				/*				dur_writeBuf.postln;
 				dur_writeBuf.plot;*/
+
+				~fw = FluidWaveform(dur_writeBuf,waveformColor:Color.black,bounds:Rect(0,0,1600,400));
+				s.sync;
+				1.wait;
+				~save_img.(~fw.win,folder+/+"02_orig_through_nmffilter.png");
+				~fw.close;
+				1.wait;
+
+				"orig_through_nmffilter image of all three created".postln;
 
 				n_components.do{
 					arg i;
