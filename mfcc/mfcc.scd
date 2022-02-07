@@ -19,22 +19,25 @@ s.waitForBoot{
 			var x = (((2 * i) + 1) * pi) / (2 * nMels);
 			var y = (x * cos_freq).cos;
 			if(inv_boolean,{y = y * -1});
-			y
+			y;
 		});
 	};
 
 	var dct = {
-		arg values;
+		arg values, n_mfccs;
 		var out;
-
-		out = nMFCCs.collect{
+		var nMels = values.size;
+		out = n_mfccs.collect{
 			arg k;
-			values.collect{
+			var scale;
+			var v = values.collect{
 				arg xn, n;
 				var x = (((2 * n) + 1) * pi * k) / (2 * nMels);
-				var c = cos(x);
-				xn * c;
+				var c = cos(x) * xn;
+				c;
 			}.sum;
+			if(k==0) {scale = (1/(4 *nMels)).sqrt} {scale = (1/(2 *nMels)).sqrt};
+			v * 2 * scale
 		};
 		out;
 	};
@@ -89,7 +92,7 @@ s.waitForBoot{
 	.elasticMode_(true)
 	.action_{
 		arg msv;
-		mfccs = dct.(msv.value.linlin(0,mel_disp_max,-1,1));
+		mfccs = dct.(msv.value.linlin(0,mel_disp_max,-1,1),nMFCCs);
 
 		mfccs_msv.value_(mfccs.linlin(-40,40,0,1));
 
@@ -130,8 +133,8 @@ s.waitForBoot{
 	uv = UserView(win,Rect(0,20,plotw * 2,ploth))
 	.acceptsMouse_(false)
 	.drawFunc_{
-		var melw = (plotw) / nMels;
-		var mfccw = (plotw) / nMFCCs;
+		var melw = plotw / nMels;
+		var mfccw = plotw / nMFCCs;
 		Pen.stringAtPoint("MelFrequency Spectrum --- MelBand:",margin@margin);
 		nMels.do{
 			arg i;
@@ -189,7 +192,7 @@ s.waitForBoot{
 					melbuf.loadToFloatArray(action:{
 						arg mels;
 
-						mels = mels / mels.maxItem;
+						// mels = mels / mels.maxItem;
 
 						melarray = mels.clump(melbuf.numChannels);
 
@@ -217,8 +220,9 @@ s.waitForBoot{
 
 		view.setSelection(0,[pos,0]);
 
-		"mels from buf: %".format(mels_).postln;
-		"mfccs from buf: %".format(mfccs_).postln;
+		"\nmels  from buf:  %".format(mels_).postln;
+		"mfccs from buf:  %".format(mfccs_).postln;
+		"mfccs from mels: %".format(dct.(mels_,nMFCCs)).postln;
 
 		mels_msv.value_(mels_);
 		mfccs = mfccs_;
