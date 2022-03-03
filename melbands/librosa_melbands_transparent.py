@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-def plot_file(path,normalize,show,timestamp,log=false):
+def plot_file(path,normalize,show,timestamp):
 
     sr = 44100
     nfilters = 10
@@ -62,31 +62,32 @@ def plot_file(path,normalize,show,timestamp,log=false):
         plt.savefig(p / f'{timestamp}_{pathname.stem}_norm={normalize}_{id}_{label}_{nfilters}_MelBands_frame={magIndex}.png',dpi=dpi,transparent=True)
          
     fig, ax = plt.subplots(1,1) 
-    ax.plot(magframe,c='gray')
+    ax.plot([ampdb(val) for val in magframe],c='gray')
     ax.set_xlim([0,len(magframe)])
-    ax.set_ylim([0,maxMag])
+    ax.set_ylim([0,ampdb(maxMag)])
     write_img(fig,ax,0,'mags')
 
     for i in range(nfilters):
         fig, ax = plt.subplots(1,1)     
-        ax.plot(mel_basis[i],c=colors[i])
+        ax.plot([ampdb(val) for val in mel_basis[i]],c=colors[i])
         label = f'triangleFilter{i}'
         ax.set_xlim([0,len(magframe)])
-        ax.set_ylim([0,maxFilterHeight])
+        ax.set_ylim([0,ampdb(maxFilterHeight)])
         write_img(fig,ax,1,label)
         print(label)
     
     for i in range(nfilters):
         fig, ax = plt.subplots(1,1)     
-        ax.plot(filtereds[i],c=colors[i])
+        ax.plot([ampdb(val) for val in filtereds[i]],c=colors[i])
         label = f'filteredSpectrum{i}'
         ax.set_xlim([0,len(magframe)])
-        ax.set_ylim([0,maxFilteredHeight])
+        ax.set_ylim([0,ampdb(maxFilteredHeight)])
         write_img(fig,ax,2,label)
         print(label)
 
     fig, ax = plt.subplots(1,1)         
     for i in range(nfilters):
+        
         ax.bar(mel_filter_centers[i],mels[i],10)
     label = f'melbandsSpaced'
     ax.set_xlim([0,len(magframe)])

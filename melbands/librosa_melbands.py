@@ -4,8 +4,14 @@ import numpy as np
 import os
 from datetime import datetime
 from pathlib import Path
+import math
 
-def plot_file(path,normalize,show,timestamp):
+epsilon = 1e-6
+
+def ampdb(amp):
+    return math.log10(amp+epsilon) * 20
+    
+def plot_file(path,normalize,show,timestamp,log=False):
 
     sr = 44100
     nfilters = 16
@@ -38,6 +44,12 @@ def plot_file(path,normalize,show,timestamp):
     for i, base in enumerate(mel_basis):        
         mels[i] = np.sum(base * magframe)
 
+    if log:
+        mels = [ampdb(val) for val in mels]
+        magframe = [ampdb(val) for val in magframe]   
+        for i in range(len(mel_basis)):
+            mel_basis[i] = [ampdb(val) for val in mel_basis[i]] 
+    
     fig, ax = plt.subplots(4,1)
 
     ax[0].plot(magframe,c='gray')
@@ -65,8 +77,9 @@ def plot_file(path,normalize,show,timestamp):
     if show:
        plt.show()
     else:
-        Path(f'outputs/{timestamp}').mkdir(exist_ok=True)
-        plt.savefig(f'outputs/{timestamp}/{timestamp}_{pathname.stem}_{nfilters}_MelBands_frame={magIndex}_norm={normalize}.jpg',dpi=dpi)
+        p = Path(f'outputs/{timestamp}_oneImage')
+        p.mkdir(exist_ok=True)
+        plt.savefig(p / f'{timestamp}_{pathname.stem}_norm={normalize}_log={log}_{nfilters}_MelBands_frame={magIndex}.png',dpi=dpi)
 
 # ======================================================================================
 ts = datetime.now().strftime("%y%m%d_%H%M%S")
@@ -74,6 +87,6 @@ ts = datetime.now().strftime("%y%m%d_%H%M%S")
 paths = ['Olencki-TenTromboneLongTones-M.wav','Nicol-LoopE-M.wav','Harker-DS-TenOboeMultiphonics-M.wav','Tremblay-CF-ChurchBells.wav']
 
 for p in paths:
-    plot_file(p,normalize=True,show=False,timestamp=ts)
+    plot_file(p,normalize=True,show=False,timestamp=ts,log=False)
 for p in paths:
-    plot_file(p,normalize=False,show=False,timestamp=ts)
+    plot_file(p,normalize=False,show=False,timestamp=ts,log=False)
