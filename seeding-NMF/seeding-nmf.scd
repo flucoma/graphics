@@ -1,6 +1,6 @@
 (
 var stamp = Date.localtime.stamp;
-var folder = thisProcess.nowExecutingPath.dirname+/+"outputs"+/+stamp;
+var folder = thisProcess.nowExecutingPath.dirname+/+"outputs"+/+"%_seeding-nmf".format(stamp);
 
 ~save_img = {
 	arg win, path;
@@ -17,6 +17,7 @@ s.waitForBoot{
 		var dur_writeBuf = Buffer(s);
 		var example_dur_buf = Buffer(s);
 		var fw;
+		var linewidth = 2;
 		var bases = Buffer.loadCollection(s,513.collect{
 			arg i;
 			var kick = 0;
@@ -34,7 +35,7 @@ s.waitForBoot{
 
 		s.sync;
 
-		fw = FluidWaveform(featuresBuffer:bases,bounds:Rect(0,0,1600,400),normalizeFeaturesIndependently:false,stackFeatures:true);
+		fw = FluidWaveform(featuresBuffer:bases,bounds:Rect(0,0,1600,400),normalizeFeaturesIndependently:false,stackFeatures:true,lineWidth:linewidth);
 		s.sync;
 		1.wait;
 		~save_img.(fw.win,folder+/+"00_seeded_bases.png");
@@ -42,7 +43,7 @@ s.waitForBoot{
 		"seeded bases image made".postln;
 
 		s.sync;
-		fw = FluidWaveform(drums,bounds:Rect(0,0,1600,400),waveformColor:Color.black);
+		fw = FluidWaveform(drums,bounds:Rect(0,0,1600,400),waveformColor:Color.black,lineWidth:linewidth);
 		s.sync;
 		1.wait;
 		~save_img.(fw.win,folder+/+"00_original_waveform.png");
@@ -53,7 +54,7 @@ s.waitForBoot{
 		~rasterBuf = Buffer(s);
 		FluidBufMelBands.processBlocking(s,drums,features:~rasterBuf,windowSize:4096,hopSize:512,numBands:480);
 		s.sync;
-		fw = FluidWaveform(imageBuffer:~rasterBuf,imageColorScheme:1,imageColorScaling:1);
+		fw = FluidWaveform(imageBuffer:~rasterBuf,imageColorScheme:1,imageColorScaling:1,lineWidth:linewidth);
 		s.sync;
 		1.wait;
 		~save_img.(fw.win,folder+/+"00_original_spectrogram_mel.png");
@@ -67,7 +68,7 @@ s.waitForBoot{
 			fork({
 				var filterbuf, exampleDur = 5, actsbuf;
 
-				fw = FluidWaveform(resynth,bounds:Rect(0,0,1600,400),waveformColor:Color.black);
+				fw = FluidWaveform(resynth,bounds:Rect(0,0,1600,400),waveformColor:Color.black,lineWidth:linewidth);
 				s.sync;
 				1.wait;
 				~save_img.(fw.win,folder+/+"00_resynth_buffer.png");
@@ -82,7 +83,8 @@ s.waitForBoot{
 					bounds:Rect(0,0,1600,400),
 					stackFeatures:true,
 					normalizeFeaturesIndependently:false,
-					waveformColor:Color.black
+					waveformColor:Color.black,
+					lineWidth:linewidth
 				);
 				s.sync;
 				1.wait;
@@ -98,7 +100,7 @@ s.waitForBoot{
 					var name = arr[1];
 					var fw;
 
-					fw = FluidWaveform(featuresBuffer:buffer,bounds:Rect(0,0,1600,400),stackFeatures:true,normalizeFeaturesIndependently:false);
+					fw = FluidWaveform(featuresBuffer:buffer,bounds:Rect(0,0,1600,400),stackFeatures:true,normalizeFeaturesIndependently:false,lineWidth:linewidth);
 					s.sync;
 					1.wait;
 					~save_img.(fw.win,folder+/+"01_%_plot.png".format(name));
@@ -121,7 +123,7 @@ s.waitForBoot{
 					// ~rasterBuf = Buffer(s);
 					FluidBufMelBands.processBlocking(s,resynth,startChan:i,numChans:1,features:~rasterBuf,windowSize:4096,hopSize:512,numBands:480);
 					s.sync;
-					fw = FluidWaveform(imageBuffer:~rasterBuf,imageColorScheme:1,imageColorScaling:1);
+					fw = FluidWaveform(imageBuffer:~rasterBuf,imageColorScheme:1,imageColorScaling:1,lineWidth:linewidth);
 					s.sync;
 					1.wait;
 					~save_img.(fw.win,folder+/+"05_resynth_spectrogram_mel_component_%.png".format(i));
