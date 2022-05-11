@@ -9,3 +9,11 @@ NMFMatch/mp3_128kbps
 NMFFilter/output
 seeding-NMF/outputs
 melbands/outputs
+BufStats/outputs
+BufStats/50pct
+mlp/50pct
+outliers/outputs
+outliers/sus_with_clicks/outputs
+pitch/outputs
+stft/outputs
+weighting-stats/outputs
