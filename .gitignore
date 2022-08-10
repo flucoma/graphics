@@ -17,3 +17,8 @@ outliers/sus_with_clicks/outputs
 pitch/outputs
 stft/outputs
 weighting-stats/outputs
+AmpGate/outputs
+BufNMFCross/outputs
+mds/outputs
+transientSlice/outputs
+transients/outputs
