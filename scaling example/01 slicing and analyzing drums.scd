@@ -1,10 +1,4 @@
 (
-s.options.device_("DELL U2917W");
-// s.options.sampleRate_(44100);
-s.options.sampleRate_(48000);
-)
-
-(
 // slice
 // s.options.outDevice_("MacBook Pro Speakers");
 s.options.outDevice_("External Headphones");
@@ -12,7 +6,7 @@ s.options.inDevice_("MacBook Pro Microphone");
 // s.options.sampleRate_(44100);
 s.waitForBoot{
 	//var path = "/Users/macprocomputer/Desktop/_flucoma/learn/scaling/test01.wav";
-	var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Nicol-LoopE-M.wav";
+	var path = FluidFilesPath("Nicol-LoopE-M.wav");
 	// var path = "/Users/macprocomputer/Desktop/_flucoma/code/flucoma-core-src/AudioFiles/Tremblay-ASWINE-ScratchySynth-M.wav";
 	Routine{
 		var process_slicePoints = {
@@ -64,25 +58,25 @@ s.waitForBoot{
 
 				~slicePoints_ds.load(start_num_dict,{~slicePoints_ds.dump});
 
-				~slicePoints.do{
-					arg arr, i;
-					var start_samps = arr[0];
-					var end_samps = arr[1];
-					var dur_samps = end_samps - start_samps;
-					var dur_secs = dur_samps / ~drums.sampleRate;
+				/*				~slicePoints.do{
+				arg arr, i;
+				var start_samps = arr[0];
+				var end_samps = arr[1];
+				var dur_samps = end_samps - start_samps;
+				var dur_secs = dur_samps / ~drums.sampleRate;
 
-					"playing slice % / %".format(i+1,~slicePoints.size-1).postln;
-					//start_samps.postln;
-					"".postln;
+				"playing slice % / %".format(i+1,~slicePoints.size-1).postln;
+				//start_samps.postln;
+				"".postln;
 
-					{
-						var sig = PlayBuf.ar(~drums.numChannels,~drums,BufRateScale.ir(~drums),startPos:start_samps);
-						var env = EnvGen.kr(Env([0,1,1,0],[0.03,dur_secs-0.06,0.03]),doneAction:2);
-						sig * env;
-					}.play;
+				{
+				var sig = PlayBuf.ar(~drums.numChannels,~drums,BufRateScale.ir(~drums),startPos:start_samps);
+				var env = EnvGen.kr(Env([0,1,1,0],[0.03,dur_secs-0.06,0.03]),doneAction:2);
+				sig * env;
+				}.play;
 
-					(dur_secs + 1).wait;
-				};
+				(dur_secs + 1).wait;
+				};*/
 			}.play;
 		};
 
@@ -106,15 +100,6 @@ s.waitForBoot{
 
 		s.sync;
 
-		/*		FluidBufOnsetSlice.process(s,~drums,indices:~slicePoints,threshold:0.05,action:{
-		// defer{slicePoints.plot};
-		process_slicePoints.value;
-		});*/
-
-		// FluidBufAmpSlice.process(s,~drums,indices:~slicePoints,floor:-24,onThreshold:5,offThreshold:10,minSliceLength:~drums.sampleRate * 0.1,action:{
-		// 	slice_points_to_2d.(process_slicePoints);
-		// });
-
 		FluidBufAmpGate.process(s,~drums,indices:~slicePoints,onThreshold:-20,offThreshold:-40,minSliceLength:~drums.sampleRate * 0.01,action:{
 			// slice_points_to_2d.(process_slicePoints);
 			~slicePoints.loadToFloatArray(action:{
@@ -131,6 +116,7 @@ s.waitForBoot{
 )
 
 (
+var folder = thisProcess.nowExecutingPath.dirname;
 // analyze
 Routine{
 	var spec_buf = Buffer(s);
@@ -140,9 +126,18 @@ Routine{
 	var x_buf = Buffer.alloc(s,2);
 	var playback_points_buf = Buffer.alloc(s,2);
 	var condition = Condition.new;
+	var json = Dictionary.new;
+
+	json["start-num"] = Dictionary.new;
+	json["raw"] = Dictionary.new;
+	json["norm"] = Dictionary.new;
+	json["std"] = Dictionary.new;
+	json["robust"] = Dictionary.new;
 
 	~ds = FluidDataSet(s);
-	~ds_playback = FluidDataSet(s);
+	~norm = FluidDataSet(s);
+	~std = FluidDataSet(s);
+	~robust = FluidDataSet(s);
 
 	s.sync;
 
@@ -151,6 +146,7 @@ Routine{
 		var start_samps = arr[0];
 		var end_samps = arr[1];
 		var dur_samps = end_samps - start_samps;
+
 		FluidBufSpectralShape.process(s,~drums,start_samps,dur_samps,features:spec_buf,action:{
 			FluidBufStats.process(s,spec_buf,numChans:1,stats:spec_stats,action:{
 				FluidBufLoudness.process(s,~drums,start_samps,dur_samps,features:loudness_buf,action:{
@@ -158,14 +154,11 @@ Routine{
 						FluidBufCompose.process(s,spec_stats,numFrames:1,destination:x_buf,action:{
 							FluidBufCompose.process(s,loudness_stats,numFrames:1,destination:x_buf,destStartFrame:1,action:{
 								var id = "slice-%".format(i);
+
+								json["start-num"][id] = [start_samps,dur_samps];
+
 								~ds.addPoint(id,x_buf,{
-									//start_samps.class.postln;
-									//dur_samps.class.postln;
-									playback_points_buf.loadCollection([start_samps,dur_samps],action:{
-										~ds_playback.addPoint(id,playback_points_buf,{
-											condition.unhang;
-										});
-									});
+									condition.unhang;
 								});
 							});
 						});
@@ -180,9 +173,29 @@ Routine{
 		condition.hang;
 	};
 
-	// ~ds.print;
-	// ~ds_playback.print;
-	~ds_playback.write("/Users/macprocomputer/Desktop/_flucoma/learn/scaling/jsons/210910_153717/drums_sliceStart_nSamps.json")
+	s.sync;
+
+	FluidNormalize(s).fitTransform(~ds,~norm);
+	FluidStandardize(s).fitTransform(~ds,~std);
+	FluidRobustScale(s).fitTransform(~ds,~robust);
+
+	[~ds,"raw",~norm,"norm",~std,"std",~robust,"robust"].clump(2).do{
+		arg arr;
+		var name = arr[1];
+		var ds = arr[0];
+		ds.dump({
+			arg dict;
+			dict["data"].keysValuesDo{
+				arg k, v;
+				json[name][k] = v;
+			};
+		});
+	};
+
+	s.sync;
+
+	JSONWriter(json,
+
 }.play;
 )
 
