@@ -1,0 +1,42 @@
+digraph G {
+
+  graph [ dpi = 300 ];
+  rankdir=LR
+  splines=line
+  nodesep="0.2";
+  node [label=""];
+  edge [arrowsize="0.4"];
+
+  subgraph cluster_0 {
+		color=white;
+    	node [style=solid,color=blue4, shape=circle];
+		x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13;
+		label = "layer 1";
+	}
+
+	subgraph cluster_1 {
+		color=white;
+		node [style=solid,color=red2, shape=circle];
+		a12 a22 a32 a42 a52;
+		label = "layer 2";
+	}
+
+	subgraph cluster_2 {
+		color=white;
+		node [style=solid,color=red2, shape=circle];
+		a13 a23 a33 a43 a53;
+		label = "layer 3";
+	}
+
+	subgraph cluster_3 {
+		color=white;
+		node [style=solid,color=seagreen2, shape=circle];
+		y1 y2 y3 y4;
+		label="layer 4";
+	}
+
+  { x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 } 
+  			   -> { a12 a22 a32 a42 a52 }
+               -> { a13 a23 a33 a43 a53 }
+               -> { y1 y2 y3 y4 }
+}

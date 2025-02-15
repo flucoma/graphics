@@ -22,3 +22,7 @@ BufNMFCross/outputs
 mds/outputs
 transientSlice/outputs
 transients/outputs
+*.rpp-bak
+*.reapeaks
+*.RPP
+*.RPP-UNDO

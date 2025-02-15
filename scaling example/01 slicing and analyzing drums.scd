@@ -1,4 +1,5 @@
 (
+~folder = thisProcess.nowExecutingPath.dirname+/+"%-drums".format(Date.localtime.stamp);
 // slice
 // s.options.outDevice_("MacBook Pro Speakers");
 s.options.outDevice_("External Headphones");
@@ -13,15 +14,14 @@ s.waitForBoot{
 			Routine{
 				var start_num_dict = Dictionary.newFrom(["cols",2,"data",Dictionary.new]);
 				var cond = Condition.new;
-				var folder = "/Users/macprocomputer/Desktop/_flucoma/learn/scaling/%_drums".format(Date.localtime.stamp);
 
-				var write = false;
+				var write = true;
 
 				if(write,{
 					var proj = ReaProj();
 					var track = ReaTrack();
 					var rea_offset = 0;
-					folder.mkdir;
+					~folder.mkdir;
 					~slicePoints.do{
 						arg arr, i;
 						var start = arr[0];
@@ -30,7 +30,7 @@ s.waitForBoot{
 						var new_buf = Buffer.alloc(s,num);
 						s.sync;
 						FluidBufCompose.process(s,~drums,start,num,destination:new_buf,action:{
-							var slice_path = folder+/+"slice-%.wav".format(i);
+							var slice_path = ~folder+/+"slice-%.wav".format(i);
 							track.addItem(ReaItem(slice_path,rea_offset,new_buf.duration.postln));
 
 							rea_offset = rea_offset + 1;
@@ -44,7 +44,7 @@ s.waitForBoot{
 						cond.hang;
 					};
 					proj.addTrack(track);
-					proj.write(folder+/+"slices.RPP");
+					proj.write(~folder+/+"slices.RPP");
 				});
 
 
@@ -100,13 +100,10 @@ s.waitForBoot{
 
 		s.sync;
 
-		FluidBufAmpGate.process(s,~drums,indices:~slicePoints,onThreshold:-20,offThreshold:-40,minSliceLength:~drums.sampleRate * 0.01,action:{
-			// slice_points_to_2d.(process_slicePoints);
+		FluidBufOnsetSlice.process(s,~drums,indices:~slicePoints,threshold:0.05,action:{
 			~slicePoints.loadToFloatArray(action:{
 				arg fa;
-				fa = fa.clump(2);
-				~slicePoints = fa;
-				~slicePoints.postln;
+
 				process_slicePoints.value;
 			});
 		});
@@ -193,8 +190,6 @@ Routine{
 	};
 
 	s.sync;
-
-	JSONWriter(json,
 
 }.play;
 )

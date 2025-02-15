@@ -1,5 +1,9 @@
 resource: https://tgmstat.wordpress.com/2013/06/12/draw-neural-network-diagrams-graphviz/
 
+## dependencies:
+
+brew install graphviz
+
 # instructions:
 
 Once you have the description code into file.txt, you then type
